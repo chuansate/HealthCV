@@ -7,6 +7,7 @@ import numpy as np
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
+pushup_classifier = keras.models.load_model("push_up_classification_100_test_acc.keras")
 
 # the features exclude the facial landmarks, becoz those are not helpful at determining push-up
 features = [
@@ -126,30 +127,34 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         # mp_drawing.draw_landmarks(frame, results.pose_landmarks,
         #                           landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
 
+        if results.pose_landmarks:
+            # if pose landmarks are detected
+            # extract the x-, y-, and z-coordinates of the 22 body landmarks as features from the frame
+            frame_features = []
+            frame_features_dict = {}
 
-        pushup_classifier = keras.models.load_model("push_up_classification_100_test_acc.keras")
-        # extract the x-, y-, and z-coordinates of the 22 body landmarks as features from the frame
-        frame_features = []
-        frame_features_dict = {}
-        for index, ft in enumerate(features):
-            landmark_coordinates = results.pose_landmarks.landmark[ft]
-            frame_features_dict[feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y,
-                                                       landmark_coordinates.z]
-        frame_features_dict = normalize_pose_landmarks(frame_features_dict)
+            for index, ft in enumerate(features):
+                landmark_coordinates = results.pose_landmarks.landmark[ft]
+                frame_features_dict[feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y,
+                                                             landmark_coordinates.z]
+            frame_features_dict = normalize_pose_landmarks(frame_features_dict)
 
-        for normalized_coordinates in frame_features_dict.values():
-            for normalized_coor in normalized_coordinates:
-                frame_features.append(normalized_coor)
+            for normalized_coordinates in frame_features_dict.values():
+                for normalized_coor in normalized_coordinates:
+                    frame_features.append(normalized_coor)
 
-        frame_features = np.array(frame_features)
+            frame_features = np.array(frame_features)
 
-        y_pred = pushup_classifier.predict(tf.expand_dims(frame_features, axis=0))
-        y_pred = 1 if y_pred[0] >= 0.5 else 0
-        predicted_pose_text_position = (10, 150)
-        if y_pred == 1:
-            cv2.putText(frame, "Push-up UP", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
-        else:
-            cv2.putText(frame, "Push-up DOWN", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
+            y_pred = pushup_classifier.predict(tf.expand_dims(frame_features, axis=0))
+            y_pred = 1 if y_pred[0] >= 0.5 else 0
+            predicted_pose_text_position = (10, 150)
+            if y_pred == 1:
+                cv2.putText(frame, "Push-up UP", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255),
+                            3)
+            else:
+                cv2.putText(frame, "Push-up DOWN", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3,
+                            (255, 0, 255), 3)
+
         cv2.imshow('Counting push-up', frame)
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
