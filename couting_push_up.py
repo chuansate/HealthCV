@@ -7,8 +7,8 @@ import numpy as np
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
-pushup_classifier = keras.models.load_model("push_up_classification_100_test_acc.keras")
-
+pushup_up_down_classifier = keras.models.load_model("push_up_classification_100_test_acc.keras")
+pushup_ready_pose_classifier = keras.models.load_model("push_up_ready_poses_classification_v2.keras")
 # the features exclude the facial landmarks, becoz those are not helpful at determining push-up
 features = [
     mp_pose.PoseLandmark.LEFT_SHOULDER,
@@ -145,14 +145,15 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
 
             frame_features = np.array(frame_features)
 
-            y_pred = pushup_classifier.predict(tf.expand_dims(frame_features, axis=0))
+            # y_pred = pushup_up_down_classifier.predict(tf.expand_dims(frame_features, axis=0))
+            y_pred = pushup_ready_pose_classifier.predict(tf.expand_dims(frame_features, axis=0))
             y_pred = 1 if y_pred[0] >= 0.5 else 0
             predicted_pose_text_position = (10, 150)
             if y_pred == 1:
-                cv2.putText(frame, "Push-up UP", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255),
+                cv2.putText(frame, "Push-up Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255),
                             3)
             else:
-                cv2.putText(frame, "Push-up DOWN", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3,
+                cv2.putText(frame, "Push-up Non-Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3,
                             (255, 0, 255), 3)
 
         cv2.imshow('Counting push-up', frame)
