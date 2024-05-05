@@ -80,22 +80,26 @@ def normalize_pose_landmarks(pose_landmarks_dict):
     return pose_landmarks_dict
 
 
-def isReadyToPushUp(pose_landmarks):
-    pass
+def isReadyToPushUp(frame_features):
+    y_pred = pushup_ready_pose_classifier.predict(tf.expand_dims(frame_features, axis=0), verbose=0)
+    y_pred = 1 if y_pred[0] >= 0.5 else 0
+    return y_pred
 
 
-
-
+count_pushup = 0
+current_pushup_state = 1
+readyToPushUp = 0
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Counting push-up", cv2.WINDOW_NORMAL)
 cv2.setWindowProperty("Counting push-up", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-
 pTime = 0
 cTime = 0
-
 TOTAL_COUNT_PUSHUP = 0
+FONT_SCALE = 2
+ready_time_elapsed = 0
+initial_time_ready = 0
+final_time_ready = 0
 
 with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
     while cap.isOpened():
@@ -120,7 +124,6 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(frame)
 
-
         # Draw the pose annotation on the image.
         frame.flags.writeable = True
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -144,20 +147,59 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                     frame_features.append(normalized_coor)
 
             frame_features = np.array(frame_features)
-
-            # y_pred = pushup_up_down_classifier.predict(tf.expand_dims(frame_features, axis=0))
-            y_pred = pushup_ready_pose_classifier.predict(tf.expand_dims(frame_features, axis=0))
-            y_pred = 1 if y_pred[0] >= 0.5 else 0
             predicted_pose_text_position = (10, 150)
-            if y_pred == 1:
-                cv2.putText(frame, "Push-up Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255),
-                            3)
-            else:
-                cv2.putText(frame, "Push-up Non-Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, 3,
-                            (255, 0, 255), 3)
+            readyToPushUp = isReadyToPushUp(frame_features)
 
-        cv2.imshow('Counting push-up', frame)
-        if cv2.waitKey(5) & 0xFF == ord('q'):
+            # while readyToPushUp:
+            #     # The user has to hold the ready-pose for 3 seconds, then the counter starts
+            #     # start counting down 3...2...1... then the counting of repetition starts
+            #     # predict it is a UP or DOWN
+            #
+            #     y_pred = pushup_up_down_classifier.predict(tf.expand_dims(frame_features, axis=0), verbose=0)
+            #     if y_pred == 1:  # push-up UP
+            #         if y_pred != current_pushup_state:
+            #             count_pushup += 1
+            #             current_pushup_state = y_pred
+            #
+            #     else:
+            #         pass
+            if readyToPushUp == 1:
+                initial_time_ready = time.time()
+                time.sleep(0.2)
+                final_time_ready = time.time()
+                ready_time_elapsed += (final_time_ready - initial_time_ready)
+                if ready_time_elapsed >= 3:
+                    cv2.putText(frame, "Pushup Count: 0", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
+                                FONT_SCALE, (255, 0, 255),
+                                3)
+                    cv2.putText(frame, "Start!",
+                                (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
+                                cv2.FONT_HERSHEY_PLAIN,
+                                FONT_SCALE, (255, 0, 255),
+                                3)
+                else:
+                    cv2.putText(frame, "Push-up Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
+                                FONT_SCALE, (255, 0, 255),
+                                3)
+                    cv2.putText(frame, "Counting down: " + str(3 - int(ready_time_elapsed)),
+                                (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
+                                cv2.FONT_HERSHEY_PLAIN,
+                                FONT_SCALE, (255, 0, 255),
+                                3)
+
+            else:
+                initial_time_ready = 0
+                final_time_ready = 0
+                ready_time_elapsed = 0
+                cv2.putText(frame, "Push-up Non-Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, FONT_SCALE,
+                            (255, 0, 255), 3)
+            cv2.imshow('Counting push-up', frame)
+        else:
+            cv2.putText(frame, "No person detected!", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
+                        FONT_SCALE,
+                        (255, 0, 255), 3)
+            cv2.imshow('Counting push-up', frame)
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 cap.release()
 cv2.destroyAllWindows()
