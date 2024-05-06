@@ -7,7 +7,7 @@ Link to common yoga poses: https://greatist.com/move/common-yoga-poses
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
-
+import time
 
 class YogaPoseImitationGameWindow:
     def __init__(self, window):
@@ -18,7 +18,9 @@ class YogaPoseImitationGameWindow:
         self.canvas = tk.Canvas(self.window, width=screen_width, height=screen_height)
         self.canvas.pack()
         self.current_image = None
-        self.photo = None  # Initialize PhotoImage as None
+        self.photo = None
+
+        # Defining properties relevant to the UFO
         self.ufo_image = ImageTk.PhotoImage(file='ufo2.png')
         self.ufo_image_width = self.ufo_image.width()
         self.ufo_image_height = self.ufo_image.height()
@@ -26,6 +28,8 @@ class YogaPoseImitationGameWindow:
         self.yVelocity = 10
         self.created_ufo_image = False
         self.ufo_image_id = None
+        self.current_coordinates = (0, 0)
+
         self.update_webcam()
 
     def update_webcam(self):
@@ -37,26 +41,20 @@ class YogaPoseImitationGameWindow:
             self.current_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             self.photo = ImageTk.PhotoImage(image=self.current_image)
             self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-            print(list(self.canvas.find_all()))    # to retrieve ID of all objects on canvas
-            if not self.created_ufo_image:
-                self.ufo_image_id = self.canvas.create_image(0, 0, image=self.ufo_image, anchor=tk.NW)
-                print("id of the ufo = ", self.ufo_image_id)
-                self.created_ufo_image = True
-
+            # print(list(self.canvas.find_all()))    # to retrieve ID of all objects on canvas
+            self.ufo_image_id = self.canvas.create_image(self.current_coordinates[0], self.current_coordinates[1], image=self.ufo_image, anchor=tk.NW)
+            print("id of the ufo = ", self.ufo_image_id)
             self.spawning_ufo()
-            #self.canvas.delete("all")
-            # print("image names = ", self.canvas.image_names())
-            self.canvas.delete("all")
         self.window.after(10, self.update_webcam)
 
     def spawning_ufo(self):
-        coordinates = self.canvas.coords(self.ufo_image_id)
-        if coordinates[0] >= (screen_width - self.ufo_image_width) or coordinates[0] < 0:
+        # coordinates = self.canvas.coords(self.ufo_image_id)
+        if self.current_coordinates[0] >= (screen_width - self.ufo_image_width) or self.current_coordinates[0] < 0:
             self.xVelocity = -self.xVelocity
-        if coordinates[1] >= (screen_height - self.ufo_image_height) or coordinates[1] < 0:
+        if self.current_coordinates[1] >= (screen_height - self.ufo_image_height) or self.current_coordinates[1] < 0:
             self.yVelocity = -self.yVelocity
-        self.canvas.move(self.ufo_image_id, self.xVelocity, self.yVelocity)
-        self.window.update()
+        self.current_coordinates = (self.current_coordinates[0] + self.xVelocity, self.current_coordinates[1] + self.yVelocity)
+        # self.canvas.move(self.ufo_image_id, self.xVelocity, self.yVelocity)
 
 
 
