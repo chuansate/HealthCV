@@ -28,8 +28,8 @@ def create_resume_button(img, side_length, coord_top_left):
 
 
 cap = cv2.VideoCapture(0)
-WIDTH = 300
-HEIGHT = 300
+# WIDTH = 300
+# HEIGHT = 300
 PAUSE_BUTTON_SIDE_LENGTH = 45
 RESUME_BUTTON_SIDE_LENGTH = 45
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)

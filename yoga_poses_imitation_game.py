@@ -1,4 +1,6 @@
 """
+THIS IS AN OLD VERSION, BECAUSE IT RENDERS WEBCAM FRAMES ON TKINTER!
+Current problem: When rendering webcam frames on tkinter windows, it keeps overlaying webcam frames on the same position, not sure what is the maximum number of objects allowed on the canvas!
 for the imitation game, use mediapipe to extract body landmarks from the sample image and users. Then, normalize the coordinates with the middle of the hip (middle of the hip is the new center).
 but the distance of the user from camera might vary. If the user is close to camera, the new coordinates are larger; If the user is far away from camera, the new coordinates are smaller.
 The new coordinates of the user can be broken down into x-components and y-components, they can be further normalized based on the x range and y range (refer to normalization in structured dataset).
@@ -8,6 +10,7 @@ import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
 import time
+
 
 class YogaPoseImitationGameWindow:
     def __init__(self, window):
