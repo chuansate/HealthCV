@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import cvzone
 
 
 class Button:
@@ -41,9 +42,19 @@ class ButtonImage:
         if (not isinstance(button_img, np.ndarray)) or (not isinstance(frame, np.ndarray)):
             raise TypeError("The frame or the image used to create the button must be a ndarray!")
 
-        self.width = button_img.shape[0]
-        self.height = button_img.shape[1]
+        if type(coord_top_left_corner) != tuple:
+            raise TypeError("The coordinates for the top left corner of the button must be a tuple!")
+
+        self.width = button_img.shape[1]
+        self.height = button_img.shape[0]
         self.coord_top_left_corner = coord_top_left_corner
+        # Put the overlay at the specified position
+        alpha = 0  # alpha value to control the transparency of the overlay
+        overlay_button_img = cv2.addWeighted(frame[coord_top_left_corner[1]: coord_top_left_corner[1]+self.height, coord_top_left_corner[0]:coord_top_left_corner[0]+self.width], alpha, button_img, 1-alpha, 0)
+        frame[coord_top_left_corner[1]: coord_top_left_corner[1]+self.height, coord_top_left_corner[0]:coord_top_left_corner[0]+self.width] = overlay_button_img
+        # cv2.imshow("button_img", button_img)
+        # cv2.imshow("Hi", frame)
+        # cv2.waitKey(0)
         self.name = name
 
     def isTapped(self, index_finger_tip_x, index_finger_tip_y):
