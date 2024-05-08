@@ -9,7 +9,7 @@ import cv2
 import mediapipe as mp
 import time
 from Buttons import *
-
+import sys
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
 cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -25,10 +25,13 @@ pTime = 0
 cTime = 0
 
 # Loading icons
-startButtonImg = cv2.imread("icons/start_button.jpg")
+startButtonImg = cv2.imread("icons/start_button.png")
 
 while True:
     success, frame = cap.read()
+    if not success:
+        print("Failed to read frames!")
+        sys.exit()
     # Flip the frame horizontally
     frame = cv2.flip(frame, 1)
     frame_height = frame.shape[0]
