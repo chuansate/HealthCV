@@ -10,6 +10,50 @@ import mediapipe as mp
 import time
 from Buttons import *
 import sys
+import os
+
+
+class YogaPoseImitationGame:
+    def __init__(self, yoga_poses_names_difficulties, yoga_poses_files_names, yoga_poses_path):
+        self.__yoga_poses_names_difficulties = yoga_poses_names_difficulties
+        self.__yoga_poses_files_names = yoga_poses_files_names
+        self.__yoga_poses_path = yoga_poses_path
+        self.__yoga_poses_scores = [0 for i in range(len(self.__yoga_poses_names_difficulties))]
+        self.__current_game_score = 0
+        self.__current_yoga_pose_index = 0
+        self.
+
+    def display_sample_yoga_pose(self, webcam_frame):
+        """
+            Display sample yoga pose on the webcam frame, so that user can imitate
+        :param webcam_frame: ndarray, webcam frame
+        :return:
+        """
+        if type(frame) != np.ndarray:
+            raise TypeError("The webcam frame should be a numpy array!")
+        frame_width = webcam_frame.shape[1]
+        frame_height = webcam_frame.shape[0]
+        sample_yoga_pose_img = cv2.imread(os.path.join(self.__yoga_poses_path, self.__yoga_poses_files_names[self.__current_yoga_pose_index]))
+        sample_yoga_pose_img = cv2.resize(sample_yoga_pose_img, (100, 100))
+        display_x = 10
+        display_y = 100
+        webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0], display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
+
+    def update_current_game_score(self):
+        self.__current_game_score = sum(self.__yoga_poses_scores)
+
+    def get_current_game_score(self):
+        return self.__current_game_score
+
+    def calculate_square_differences(self):
+        """
+        Compare the user's body landmarks with the sample's
+        :return:
+        """
+        pass
+
+    def calculate_game_score_yoga_pose(self):
+        pass
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
@@ -25,10 +69,31 @@ mpDraw = mp.solutions.drawing_utils
 pTime = 0
 cTime = 0
 
+# Information about the yoga poses
+YOGA_POSES_PATH = "yoga_poses_imitation_game_images"
+
+YOGA_POSES_FILE_NAMES = [
+    "beginner_chair_pose.jpg"
+]
+
+# stores tuples of (yoga pose's name, yoga pose's difficulty)
+# difficulty = 0 means beginner,
+# difficulty = 1 means intermediate,
+# difficulty = 2 means advanced.
+YOGA_POSES_NAMES_DIFFICULTIES = [
+    ("Chair Pose", 0)
+]
+
+
+
 # Loading icons
 startButtonImg = cv2.imread("icons/start_button.png")
 startButtonImg_WIDTH = startButtonImg.shape[1]
 startButtonImg_HEIGHT = startButtonImg.shape[0]
+
+# Flag
+game_started = False
+game_object_created = False
 
 while True:
     success, frame = cap.read()
@@ -43,13 +108,20 @@ while True:
     results = hands.process(rgbFrame)
 
     cTime = time.time()
-    fps = 1/(cTime-pTime)
+    fps = 1 / (cTime - pTime)
     pTime = cTime
-    cv2.putText(frame, str(int(fps)) + " FPS", (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
-    # the 206 and 32 are got from cv2.getTextSize()
-    cv2.putText(frame, "HealthCV", (frame_width//2 - 206//2, int((0.4 * frame_height)/2) - 32//2), cv2.FONT_ITALIC, 1.5, (255, 0, 255), 1)
-    startButton = ButtonImage(frame, startButtonImg, (frame_width//2 - startButtonImg_WIDTH//2, 200), "start_but")
-
+    cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+    if not game_started:
+        startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
+                                  "start_but")
+    else:
+        if not game_object_created:
+            game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
+            game_object_created = True
+        else:
+            cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50), cv2.FONT_HERSHEY_PLAIN, 2,
+                    (255, 0, 255), 2)
+            game_object.display_sample_yoga_pose(frame)
 
     if results.multi_hand_landmarks:
         for handLms in results.multi_hand_landmarks:
@@ -59,8 +131,7 @@ while True:
             index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
 
             if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
-                # redirecting to other pages
-                pass
+                game_started = True
 
     cv2.imshow('Frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
