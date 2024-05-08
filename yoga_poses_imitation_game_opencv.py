@@ -10,6 +10,7 @@ import mediapipe as mp
 import time
 from Buttons import *
 import sys
+
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
 cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -26,6 +27,8 @@ cTime = 0
 
 # Loading icons
 startButtonImg = cv2.imread("icons/start_button.png")
+startButtonImg_WIDTH = startButtonImg.shape[1]
+startButtonImg_HEIGHT = startButtonImg.shape[0]
 
 while True:
     success, frame = cap.read()
@@ -45,7 +48,9 @@ while True:
     cv2.putText(frame, str(int(fps)) + " FPS", (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
     # the 206 and 32 are got from cv2.getTextSize()
     cv2.putText(frame, "HealthCV", (frame_width//2 - 206//2, int((0.4 * frame_height)/2) - 32//2), cv2.FONT_ITALIC, 1.5, (255, 0, 255), 1)
-    startButton = ButtonImage(frame, startButtonImg, (100, 100), "start_but")
+    startButton = ButtonImage(frame, startButtonImg, (frame_width//2 - startButtonImg_WIDTH//2, 200), "start_but")
+
+
     if results.multi_hand_landmarks:
         for handLms in results.multi_hand_landmarks:
             # don't pass HAND_CONNECTIONS if u just want the landmarks
