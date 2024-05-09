@@ -11,6 +11,7 @@ import time
 from Buttons import *
 import sys
 import os
+import csv
 
 
 class YogaPoseImitationGame:
@@ -19,6 +20,56 @@ class YogaPoseImitationGame:
     mp_drawing_styles = mp.solutions.drawing_styles
     pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
 
+    features = [
+        mp_pose.PoseLandmark.LEFT_SHOULDER,
+        mp_pose.PoseLandmark.RIGHT_SHOULDER,
+        mp_pose.PoseLandmark.LEFT_ELBOW,
+        mp_pose.PoseLandmark.RIGHT_ELBOW,
+        mp_pose.PoseLandmark.LEFT_WRIST,
+        mp_pose.PoseLandmark.RIGHT_WRIST,
+        mp_pose.PoseLandmark.LEFT_PINKY,
+        mp_pose.PoseLandmark.RIGHT_PINKY,
+        mp_pose.PoseLandmark.LEFT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_INDEX,
+        mp_pose.PoseLandmark.LEFT_THUMB,
+        mp_pose.PoseLandmark.RIGHT_THUMB,
+        mp_pose.PoseLandmark.LEFT_HIP,
+        mp_pose.PoseLandmark.RIGHT_HIP,
+        mp_pose.PoseLandmark.LEFT_KNEE,
+        mp_pose.PoseLandmark.RIGHT_KNEE,
+        mp_pose.PoseLandmark.LEFT_ANKLE,
+        mp_pose.PoseLandmark.RIGHT_ANKLE,
+        mp_pose.PoseLandmark.LEFT_HEEL,
+        mp_pose.PoseLandmark.RIGHT_HEEL,
+        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
+    ]
+
+    feature_names = [
+        "LEFT_SHOULDER",
+        "RIGHT_SHOULDER",
+        "LEFT_ELBOW",
+        "RIGHT_ELBOW",
+        "LEFT_WRIST",
+        "RIGHT_WRIST",
+        "LEFT_PINKY",
+        "RIGHT_PINKY",
+        "LEFT_INDEX",
+        "RIGHT_INDEX",
+        "LEFT_THUMB",
+        "RIGHT_THUMB",
+        "LEFT_HIP",
+        "RIGHT_HIP",
+        "LEFT_KNEE",
+        "RIGHT_KNEE",
+        "LEFT_ANKLE",
+        "RIGHT_ANKLE",
+        "LEFT_HEEL",
+        "RIGHT_HEEL",
+        "LEFT_FOOT_INDEX",
+        "RIGHT_FOOT_INDEX"
+    ]
+
     def __init__(self, yoga_poses_names_difficulties, yoga_poses_files_names, yoga_poses_path):
         self.__yoga_poses_names_difficulties = yoga_poses_names_difficulties
         self.__yoga_poses_files_names = yoga_poses_files_names
@@ -26,6 +77,15 @@ class YogaPoseImitationGame:
         self.__yoga_poses_scores = [0 for i in range(len(self.__yoga_poses_names_difficulties))]
         self.__current_game_score = 0
         self.__current_yoga_pose_index = 0
+        self.__sample_yoga_poses_landmarks = self.read_sample_yoga_poses_csv()
+
+    def read_sample_yoga_poses_csv(self):
+        file = open("./yoga_poses_imitation_game_images/sample_yoga_poses_landmarks.csv")
+        csvreader = csv.reader(file)
+        rows = []
+        for row in csvreader:
+            rows.append(row)
+        return rows
 
     def display_sample_yoga_pose(self, webcam_frame):
         """
@@ -43,7 +103,7 @@ class YogaPoseImitationGame:
         webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0],
         display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
 
-    def calculate_square_differences(self, webcam_frame):
+    def calculate_similarity(self, webcam_frame):
         """
             Compare the user's body landmarks with the sample's
         :param webcam_frame: a numpy array, webcam frame
@@ -63,22 +123,58 @@ class YogaPoseImitationGame:
                 pose_results.pose_landmarks,
                 YogaPoseImitationGame.mp_pose.POSE_CONNECTIONS,
                 landmark_drawing_spec=YogaPoseImitationGame.mp_drawing_styles.get_default_pose_landmarks_style())
+            # extract the x-, and y-coordinates of the 22 body landmarks as features
+            user_landmarks_dict = {}  # by the user
+            for index, ft in enumerate(YogaPoseImitationGame.features):
+                landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
+                user_landmarks_dict[YogaPoseImitationGame.feature_names[index]] = [landmark_coordinates.x,
+                                                                              landmark_coordinates.y]
+            user_landmarks_dict = self.normalize_pose_landmarks(user_landmarks_dict)
+            current_yoga_pose_landmarks = self.__sample_yoga_poses_landmarks[self.__current_yoga_pose_index]
+            sum_squared_differences = 0
+            user_landmarks = [elem for row in list(user_landmarks_dict.values()) for elem in row]
+            for i in range(len(user_landmarks)):
+                sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i])**2
+
+            cv2.putText(webcam_frame, "Diff: " + str(round(sum_squared_differences, 2)),
+                        (frame_width - 200, 75),
+                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+
+            # cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50),
+            #             cv2.FONT_HERSHEY_PLAIN, 2,
+            #             (255, 0, 255), 2)
+            # sum_squared_differences = sum_squared_differences / len(YogaPoseImitationGame.feature_names)
         else:
             cv2.putText(webcam_frame, "Failed to detect user!",
                         (frame_width // 2 - 206 // 2, 50),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
     def normalize_pose_landmarks(self, pose_landmarks_dict):
-        """Calculates pose center as point between hips."""
+        """
+        Calculates pose center as point between hips.
+        Then, normalize the coordinates with the middle of the hip (middle of the hip is the new center).
+
+        But the distance of the user from camera might vary:
+        If the user is close to camera, the new coordinates are larger;
+        If the user is far away from camera, the new coordinates are smaller.
+
+        The new coordinates of the user can be broken down into x-components and y-components,
+        they can be further normalized based on the x range and y range (refer to normalization in structured dataset).
+        """
         left_hip = pose_landmarks_dict['LEFT_HIP']
         right_hip = pose_landmarks_dict['RIGHT_HIP']
         center = []
         for i in range(len(left_hip)):
             center.append((left_hip[i] + right_hip[i]) * 0.5)
+
+        # Changing the origin from top-left corner to the middle of the left hip and right hip
         for key, coordinates in pose_landmarks_dict.items():
             for i in range(len(coordinates)):
                 coordinates[i] -= center[i]
             pose_landmarks_dict[key] = coordinates
+
+        # Normalize the x-coordinates and y-coordinates into range [0, 1]
+        ##########################################################################
         return pose_landmarks_dict
 
     def update_current_game_score(self):
@@ -101,7 +197,6 @@ cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 mpHands = mp.solutions.hands
 hands = mpHands.Hands(False)  # modify `max_num_hands`
 mpDraw = mp.solutions.drawing_utils
-
 pTime = 0
 cTime = 0
 
@@ -166,7 +261,7 @@ while True:
                         cv2.FONT_HERSHEY_PLAIN, 2,
                         (255, 0, 255), 2)
             game_object.display_sample_yoga_pose(frame)
-            game_object.calculate_square_differences(frame)
+            game_object.calculate_similarity(frame)
 
     cv2.imshow('Frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
