@@ -12,6 +12,7 @@ from Buttons import *
 import sys
 import os
 import csv
+import math
 
 
 class YogaPoseImitationGame:
@@ -75,9 +76,13 @@ class YogaPoseImitationGame:
         self.__yoga_poses_files_names = yoga_poses_files_names
         self.__yoga_poses_path = yoga_poses_path
         self.__yoga_poses_scores = [0 for i in range(len(self.__yoga_poses_names_difficulties))]
-        self.__current_game_score = 0
+        self.__total_game_score = 0
         self.__current_yoga_pose_index = 0
         self.__sample_yoga_poses_landmarks = self.read_sample_yoga_poses_csv()
+        self.__difficulty_levels = {0: "Beginner", 1: "Intermediate", 2: "Advanced"}
+        self.__similarity_threshold = 0.5  # once the similarity exceeds this threshold, then timer starts counting down
+        self.__hold_pose_period = 3  # the user has to hold the yoga pose for this long, in seconds
+        self.__hold_pose_time_elapsed = 0
 
     def read_sample_yoga_poses_csv(self):
         file = open("./yoga_poses_imitation_game_images/sample_yoga_poses_landmarks.csv")
@@ -95,15 +100,33 @@ class YogaPoseImitationGame:
         """
         if type(frame) != np.ndarray:
             raise TypeError("The webcam frame should be a numpy array!")
-        sample_yoga_pose_img = cv2.imread(
-            os.path.join(self.__yoga_poses_path, self.__yoga_poses_files_names[self.__current_yoga_pose_index]))
-        sample_yoga_pose_img = cv2.resize(sample_yoga_pose_img, (100, 100))
-        display_x = 10
-        display_y = 100
-        webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0],
-        display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
+        if self.__current_yoga_pose_index < len(self.__yoga_poses_names_difficulties):
+            sample_yoga_pose_img = cv2.imread(
+                os.path.join(self.__yoga_poses_path, self.__yoga_poses_files_names[self.__current_yoga_pose_index]))
+            sample_yoga_pose_img = cv2.resize(sample_yoga_pose_img, (150, 200))
+            display_x = 10
+            display_y = 110
+            webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0],
+            display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
+            cv2.putText(webcam_frame, self.__difficulty_levels[self.__yoga_poses_names_difficulties[self.__current_yoga_pose_index][1]] + " level",
+                        (10, 85),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            cv2.putText(webcam_frame, self.__yoga_poses_names_difficulties[self.__current_yoga_pose_index][0],
+                        (10, 100),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+        else:
+            self.game_over(webcam_frame)
 
-    def calculate_similarity(self, webcam_frame):
+    def game_over(self, webcam_frame):
+        """
+        Maybe save the game data into database?
+        :return:
+        """
+        cv2.putText(webcam_frame, "Game over!",
+                    (frame_width // 2 - 206 // 2, 75),
+                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def evaluate_user_pose(self, webcam_frame):
         """
             Compare the user's body landmarks with the sample's
         :param webcam_frame: a numpy array, webcam frame
@@ -114,40 +137,64 @@ class YogaPoseImitationGame:
         # pass by reference.
         webcam_frame.flags.writeable = False
         pose_results = YogaPoseImitationGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
-
+        similarity_score = 0
         if pose_results.pose_landmarks:
-            # Draw the pose annotation on the webcam frame.
-            webcam_frame.flags.writeable = True
-            YogaPoseImitationGame.mp_drawing.draw_landmarks(
-                webcam_frame,
-                pose_results.pose_landmarks,
-                YogaPoseImitationGame.mp_pose.POSE_CONNECTIONS,
-                landmark_drawing_spec=YogaPoseImitationGame.mp_drawing_styles.get_default_pose_landmarks_style())
-            # extract the x-, and y-coordinates of the 22 body landmarks as features
-            user_landmarks_dict = {}  # by the user
-            for index, ft in enumerate(YogaPoseImitationGame.features):
-                landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
-                user_landmarks_dict[YogaPoseImitationGame.feature_names[index]] = [landmark_coordinates.x,
-                                                                              landmark_coordinates.y]
-            user_landmarks_dict = self.normalize_pose_landmarks(user_landmarks_dict)
-            current_yoga_pose_landmarks = self.__sample_yoga_poses_landmarks[self.__current_yoga_pose_index]
-            sum_squared_differences = 0
-            user_landmarks = [elem for row in list(user_landmarks_dict.values()) for elem in row]
-            for i in range(len(user_landmarks)):
-                sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i])**2
+            if self.__current_yoga_pose_index < len(self.__yoga_poses_names_difficulties):
+                # Draw the pose annotation on the webcam frame.
+                webcam_frame.flags.writeable = True
+                YogaPoseImitationGame.mp_drawing.draw_landmarks(
+                    webcam_frame,
+                    pose_results.pose_landmarks,
+                    YogaPoseImitationGame.mp_pose.POSE_CONNECTIONS,
+                    landmark_drawing_spec=YogaPoseImitationGame.mp_drawing_styles.get_default_pose_landmarks_style())
+                # extract the x-, and y-coordinates of the 22 body landmarks as features
+                user_landmarks_dict = {}  # by the user
+                for index, ft in enumerate(YogaPoseImitationGame.features):
+                    landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
+                    user_landmarks_dict[YogaPoseImitationGame.feature_names[index]] = [landmark_coordinates.x,
+                                                                                  landmark_coordinates.y]
+                user_landmarks_dict = self.normalize_pose_landmarks(user_landmarks_dict)
+                current_yoga_pose_landmarks = self.__sample_yoga_poses_landmarks[self.__current_yoga_pose_index]
+                sum_squared_differences = 0
+                user_landmarks = [elem for row in list(user_landmarks_dict.values()) for elem in row]
+                for i in range(len(user_landmarks)):
+                    sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i])**2
 
-            cv2.putText(webcam_frame, "Diff: " + str(round(sum_squared_differences, 2)),
-                        (frame_width - 200, 75),
-                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+                cv2.putText(webcam_frame, "Diff: " + str(round(sum_squared_differences, 2)),
+                            (frame_width - 200, 75),
+                            cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+                similarity_score = self.calculate_similarity(sum_squared_differences)
+                self.__yoga_poses_scores[self.__current_yoga_pose_index] = int(similarity_score * 100)
+                cv2.putText(webcam_frame, "Similarity: " + str(round(similarity_score * 100, 1)) + "%",
+                            (frame_width - 200, 100),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
-            # cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50),
-            #             cv2.FONT_HERSHEY_PLAIN, 2,
-            #             (255, 0, 255), 2)
-            # sum_squared_differences = sum_squared_differences / len(YogaPoseImitationGame.feature_names)
         else:
             cv2.putText(webcam_frame, "Failed to detect user!",
                         (frame_width // 2 - 206 // 2, 50),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+        return similarity_score
+
+    def count_down(self, webcam_frame, currentTime, previousTime):
+        self.__hold_pose_time_elapsed += (currentTime - previousTime)
+        if self.__hold_pose_time_elapsed > self.__hold_pose_period:
+            self.update_total_game_score()
+            self.__current_yoga_pose_index += 1
+
+        else:
+            cv2.putText(webcam_frame, "Hold this pose for " + str(int(round(self.__hold_pose_period - self.__hold_pose_time_elapsed, 0))),
+                    (frame_width // 2 - 206 // 2, 75),
+                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+
+    def calculate_similarity(self, sum_squared_differences):
+        """
+        Return a similarity score that ranges from 0 to 1
+        :param sum_squared_differences: sum of squared differences between the user's landmarks and sample yoga pose's landmarks
+        :return:
+        """
+        return math.e ** (-1 * sum_squared_differences)
 
     def normalize_pose_landmarks(self, pose_landmarks_dict):
         """
@@ -174,17 +221,35 @@ class YogaPoseImitationGame:
             pose_landmarks_dict[key] = coordinates
 
         # Normalize the x-coordinates and y-coordinates into range [0, 1]
-        ##########################################################################
+        landmarks_x = []
+        landmarks_y = []
+        for lm_x, lm_y in pose_landmarks_dict.values():
+            landmarks_x.append(lm_x)
+            landmarks_y.append(lm_y)
+        x_min = min(landmarks_x)
+        x_max = max(landmarks_x)
+        y_min = min(landmarks_y)
+        y_max = max(landmarks_y)
+        for ft_name in YogaPoseImitationGame.feature_names:
+            pose_landmarks_dict[ft_name][0] = (pose_landmarks_dict[ft_name][0] - x_min) / (x_max - x_min)
+            pose_landmarks_dict[ft_name][1] = (pose_landmarks_dict[ft_name][1] - y_min) / (y_max - y_min)
+
         return pose_landmarks_dict
 
-    def update_current_game_score(self):
-        self.__current_game_score = sum(self.__yoga_poses_scores)
+    def update_total_game_score(self):
+        self.__total_game_score = sum(self.__yoga_poses_scores)
 
-    def get_current_game_score(self):
-        return self.__current_game_score
+    def get_total_game_score(self):
+        return self.__total_game_score
 
     def calculate_game_score_yoga_pose(self):
         pass
+
+    def get_similarity_threshold(self):
+        return self.__similarity_threshold
+
+    def set_hold_pose_time_elapsed(self, value):
+        self.__hold_pose_time_elapsed = value
 
 
 cap = cv2.VideoCapture(0)
@@ -197,8 +262,8 @@ cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 mpHands = mp.solutions.hands
 hands = mpHands.Hands(False)  # modify `max_num_hands`
 mpDraw = mp.solutions.drawing_utils
-pTime = 0
-cTime = 0
+prevTime = 0
+curTime = 0
 
 # Information about the yoga poses
 YOGA_POSES_PATH = "yoga_poses_imitation_game_images"
@@ -234,9 +299,9 @@ while True:
     frame_height = frame.shape[0]
     frame_width = frame.shape[1]
 
-    cTime = time.time()
-    fps = 1 / (cTime - pTime)
-    pTime = cTime
+    curTime = time.time()
+    fps = 1 / (curTime - prevTime)
+
     cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
     if not game_started:
         rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -257,12 +322,16 @@ while True:
             game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
             game_object_created = True
         else:
-            cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50),
+            cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
                         cv2.FONT_HERSHEY_PLAIN, 2,
                         (255, 0, 255), 2)
             game_object.display_sample_yoga_pose(frame)
-            game_object.calculate_similarity(frame)
-
+            cur_similarity_score = game_object.evaluate_user_pose(frame)
+            if cur_similarity_score > game_object.get_similarity_threshold():
+                game_object.count_down(frame, curTime, prevTime)
+            else:
+                game_object.set_hold_pose_time_elapsed(0)
+    prevTime = curTime
     cv2.imshow('Frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
