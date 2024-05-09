@@ -21,7 +21,6 @@ class YogaPoseImitationGame:
         self.__yoga_poses_scores = [0 for i in range(len(self.__yoga_poses_names_difficulties))]
         self.__current_game_score = 0
         self.__current_yoga_pose_index = 0
-        self.
 
     def display_sample_yoga_pose(self, webcam_frame):
         """

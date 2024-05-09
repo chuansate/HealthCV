@@ -1,5 +1,6 @@
 """
 A script to extract landmarks from the sample yoga poses, then save into CSV file.
+Everytime a new sample yoga pose is added, the CSV file has to be deleted and the script must be run.
 """
 
 import cv2
