@@ -77,6 +77,20 @@ def normalize_pose_landmarks(pose_landmarks_dict):
         for i in range(len(coordinates)):
             coordinates[i] -= center[i]
         pose_landmarks_dict[key] = coordinates
+
+    # Normalize the x-coordinates and y-coordinates into range [0, 1]
+    landmarks_x = []
+    landmarks_y = []
+    for lm_x, lm_y in pose_landmarks_dict.values():
+        landmarks_x.append(lm_x)
+        landmarks_y.append(lm_y)
+    x_min = min(landmarks_x)
+    x_max = max(landmarks_x)
+    y_min = min(landmarks_y)
+    y_max = max(landmarks_y)
+    for ft_name in feature_names:
+        pose_landmarks_dict[ft_name][0] = (pose_landmarks_dict[ft_name][0] - x_min) / (x_max - x_min)
+        pose_landmarks_dict[ft_name][1] = (pose_landmarks_dict[ft_name][1] - y_min) / (y_max - y_min)
     return pose_landmarks_dict
 
 
