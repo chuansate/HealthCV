@@ -14,6 +14,11 @@ import os
 
 
 class YogaPoseImitationGame:
+    mp_pose = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
+
     def __init__(self, yoga_poses_names_difficulties, yoga_poses_files_names, yoga_poses_path):
         self.__yoga_poses_names_difficulties = yoga_poses_names_difficulties
         self.__yoga_poses_files_names = yoga_poses_files_names
@@ -30,13 +35,49 @@ class YogaPoseImitationGame:
         """
         if type(frame) != np.ndarray:
             raise TypeError("The webcam frame should be a numpy array!")
-        frame_width = webcam_frame.shape[1]
-        frame_height = webcam_frame.shape[0]
-        sample_yoga_pose_img = cv2.imread(os.path.join(self.__yoga_poses_path, self.__yoga_poses_files_names[self.__current_yoga_pose_index]))
+        sample_yoga_pose_img = cv2.imread(
+            os.path.join(self.__yoga_poses_path, self.__yoga_poses_files_names[self.__current_yoga_pose_index]))
         sample_yoga_pose_img = cv2.resize(sample_yoga_pose_img, (100, 100))
         display_x = 10
         display_y = 100
-        webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0], display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
+        webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0],
+        display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
+
+    def calculate_square_differences(self, webcam_frame):
+        """
+            Compare the user's body landmarks with the sample's
+        :param webcam_frame: a numpy array, webcam frame
+        :return:
+        """
+        frame_width = webcam_frame.shape[1]
+
+        pose_results = YogaPoseImitationGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
+
+        if pose_results.pose_landmarks:
+            # Draw the pose annotation on the webcam frame.
+            BGR_frame = cv2.cvtColor(webcam_frame, cv2.COLOR_RGB2BGR)
+            YogaPoseImitationGame.mp_drawing.draw_landmarks(
+                BGR_frame,
+                pose_results.pose_landmarks,
+                YogaPoseImitationGame.mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=YogaPoseImitationGame.mp_drawing_styles.get_default_pose_landmarks_style())
+        else:
+            cv2.putText(webcam_frame, "Failed to detect user!",
+                        (frame_width // 2 - 206 // 2, 50),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def normalize_pose_landmarks(self, pose_landmarks_dict):
+        """Calculates pose center as point between hips."""
+        left_hip = pose_landmarks_dict['LEFT_HIP']
+        right_hip = pose_landmarks_dict['RIGHT_HIP']
+        center = []
+        for i in range(len(left_hip)):
+            center.append((left_hip[i] + right_hip[i]) * 0.5)
+        for key, coordinates in pose_landmarks_dict.items():
+            for i in range(len(coordinates)):
+                coordinates[i] -= center[i]
+            pose_landmarks_dict[key] = coordinates
+        return pose_landmarks_dict
 
     def update_current_game_score(self):
         self.__current_game_score = sum(self.__yoga_poses_scores)
@@ -44,15 +85,9 @@ class YogaPoseImitationGame:
     def get_current_game_score(self):
         return self.__current_game_score
 
-    def calculate_square_differences(self):
-        """
-        Compare the user's body landmarks with the sample's
-        :return:
-        """
-        pass
-
     def calculate_game_score_yoga_pose(self):
         pass
+
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
@@ -83,8 +118,6 @@ YOGA_POSES_NAMES_DIFFICULTIES = [
     ("Chair Pose", 0)
 ]
 
-
-
 # Loading icons
 startButtonImg = cv2.imread("icons/start_button.png")
 startButtonImg_WIDTH = startButtonImg.shape[1]
@@ -103,34 +136,35 @@ while True:
     frame = cv2.flip(frame, 1)
     frame_height = frame.shape[0]
     frame_width = frame.shape[1]
-    rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(rgbFrame)
 
     cTime = time.time()
     fps = 1 / (cTime - pTime)
     pTime = cTime
     cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
     if not game_started:
+        rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(rgbFrame)
         startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
                                   "start_but")
+        if results.multi_hand_landmarks:
+            for handLms in results.multi_hand_landmarks:
+                # don't pass HAND_CONNECTIONS if u just want the landmarks
+                mpDraw.draw_landmarks(frame, handLms)
+                index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
+                index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
+
+                if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
+                    game_started = True
     else:
         if not game_object_created:
             game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
             game_object_created = True
         else:
-            cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50), cv2.FONT_HERSHEY_PLAIN, 2,
-                    (255, 0, 255), 2)
+            cv2.putText(frame, "Score: " + str(game_object.get_current_game_score()), (frame_width - 200, 50),
+                        cv2.FONT_HERSHEY_PLAIN, 2,
+                        (255, 0, 255), 2)
             game_object.display_sample_yoga_pose(frame)
-
-    if results.multi_hand_landmarks:
-        for handLms in results.multi_hand_landmarks:
-            # don't pass HAND_CONNECTIONS if u just want the landmarks
-            mpDraw.draw_landmarks(frame, handLms)
-            index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
-            index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
-
-            if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
-                game_started = True
+            game_object.calculate_square_differences(frame)
 
     cv2.imshow('Frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
