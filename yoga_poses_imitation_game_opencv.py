@@ -50,14 +50,16 @@ class YogaPoseImitationGame:
         :return:
         """
         frame_width = webcam_frame.shape[1]
-
+        # To improve performance, optionally mark the image as not writeable to
+        # pass by reference.
+        webcam_frame.flags.writeable = False
         pose_results = YogaPoseImitationGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
 
         if pose_results.pose_landmarks:
             # Draw the pose annotation on the webcam frame.
-            BGR_frame = cv2.cvtColor(webcam_frame, cv2.COLOR_RGB2BGR)
+            webcam_frame.flags.writeable = True
             YogaPoseImitationGame.mp_drawing.draw_landmarks(
-                BGR_frame,
+                webcam_frame,
                 pose_results.pose_landmarks,
                 YogaPoseImitationGame.mp_pose.POSE_CONNECTIONS,
                 landmark_drawing_spec=YogaPoseImitationGame.mp_drawing_styles.get_default_pose_landmarks_style())
