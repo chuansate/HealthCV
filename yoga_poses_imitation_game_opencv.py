@@ -122,6 +122,7 @@ class YogaPoseImitationGame:
         Maybe save the game data into database?
         :return:
         """
+        frame_width = webcam_frame.shape[1]
         cv2.putText(webcam_frame, "Game over!",
                     (frame_width // 2 - 206 // 2, 75),
                     cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
@@ -248,6 +249,14 @@ class YogaPoseImitationGame:
     def set_hold_pose_time_elapsed(self, value):
         self.__hold_pose_time_elapsed = value
 
+    def set_current_yoga_pose_index(self, index):
+        if index < 0:
+            raise ValueError("Array index cannot be less than 0!")
+        self.__current_yoga_pose_index = index
+
+    def get_current_yoga_pose_index(self):
+        return self.__current_yoga_pose_index
+
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
@@ -269,7 +278,7 @@ YOGA_POSES_FILE_NAMES = [
     "0_chair_pose.jpg",
     "0_warriorII.jpg",
     "1_intense_side_stretch.jpg",
-    "2_wheel_pose.jpg"
+    "2_side_plank.jpg"
 ]
 
 # stores tuples of (yoga pose's name, yoga pose's difficulty)
@@ -280,7 +289,7 @@ YOGA_POSES_NAMES_DIFFICULTIES = [
     ("Chair Pose", 0),
     ("Warrior II", 0),
     ("Intense Side Stretch", 1),
-    ("Wheel Pose", 2)
+    ("Side plank", 2)
 ]
 
 # Loading icons
@@ -325,6 +334,9 @@ while True:
             game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
             game_object_created = True
         else:
+            cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
             cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
                         cv2.FONT_HERSHEY_PLAIN, 2,
                         (255, 0, 255), 2)
@@ -336,5 +348,13 @@ while True:
                 game_object.set_hold_pose_time_elapsed(0)
     prevTime = curTime
     cv2.imshow('Frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
+        if game_started and game_object_created:
+            print("Game over!")
+            game_object.set_current_yoga_pose_index(game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))
+            game_object.game_over(frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
         break
+
+
