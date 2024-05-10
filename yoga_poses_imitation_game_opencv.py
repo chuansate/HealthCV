@@ -108,7 +108,8 @@ class YogaPoseImitationGame:
             display_y = 110
             webcam_frame[display_y:display_y + sample_yoga_pose_img.shape[0],
             display_x: display_x + sample_yoga_pose_img.shape[1]] = sample_yoga_pose_img
-            cv2.putText(webcam_frame, self.__difficulty_levels[self.__yoga_poses_names_difficulties[self.__current_yoga_pose_index][1]] + " level",
+            cv2.putText(webcam_frame, self.__difficulty_levels[
+                self.__yoga_poses_names_difficulties[self.__current_yoga_pose_index][1]] + " level",
                         (10, 85),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
             cv2.putText(webcam_frame, self.__yoga_poses_names_difficulties[self.__current_yoga_pose_index][0],
@@ -153,13 +154,13 @@ class YogaPoseImitationGame:
                 for index, ft in enumerate(YogaPoseImitationGame.features):
                     landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
                     user_landmarks_dict[YogaPoseImitationGame.feature_names[index]] = [landmark_coordinates.x,
-                                                                                  landmark_coordinates.y]
+                                                                                       landmark_coordinates.y]
                 user_landmarks_dict = self.normalize_pose_landmarks(user_landmarks_dict)
                 current_yoga_pose_landmarks = self.__sample_yoga_poses_landmarks[self.__current_yoga_pose_index]
                 sum_squared_differences = 0
                 user_landmarks = [elem for row in list(user_landmarks_dict.values()) for elem in row]
                 for i in range(len(user_landmarks)):
-                    sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i])**2
+                    sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i]) ** 2
 
                 similarity_score = self.calculate_similarity(sum_squared_differences)
                 self.__yoga_poses_scores[self.__current_yoga_pose_index] = int(similarity_score * 100)
@@ -175,16 +176,17 @@ class YogaPoseImitationGame:
         return similarity_score
 
     def count_down(self, webcam_frame, currentTime, previousTime):
+        frame_width = webcam_frame.shape[1]
         self.__hold_pose_time_elapsed += (currentTime - previousTime)
         if self.__hold_pose_time_elapsed > self.__hold_pose_period:
             self.update_total_game_score()
             self.__current_yoga_pose_index += 1
 
         else:
-            cv2.putText(webcam_frame, "Hold this pose for " + str(int(round(self.__hold_pose_period - self.__hold_pose_time_elapsed, 0))),
-                    (frame_width // 2 - 206 // 2, 75),
-                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
-
+            cv2.putText(webcam_frame, "Hold this pose for " + str(
+                int(round(self.__hold_pose_period - self.__hold_pose_time_elapsed, 0))),
+                        (frame_width // 2 - 206 // 2, 75),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
     def calculate_similarity(self, sum_squared_differences):
         """
@@ -351,10 +353,9 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
         if game_started and game_object_created:
             print("Game over!")
-            game_object.set_current_yoga_pose_index(game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))
+            game_object.set_current_yoga_pose_index(
+                game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))
             game_object.game_over(frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
         break
-
-
