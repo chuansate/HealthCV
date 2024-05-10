@@ -160,14 +160,11 @@ class YogaPoseImitationGame:
                 for i in range(len(user_landmarks)):
                     sum_squared_differences += (float(current_yoga_pose_landmarks[i]) - user_landmarks[i])**2
 
-                cv2.putText(webcam_frame, "Diff: " + str(round(sum_squared_differences, 2)),
-                            (frame_width - 200, 75),
-                            cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
                 similarity_score = self.calculate_similarity(sum_squared_differences)
                 self.__yoga_poses_scores[self.__current_yoga_pose_index] = int(similarity_score * 100)
                 cv2.putText(webcam_frame, "Similarity: " + str(round(similarity_score * 100, 1)) + "%",
-                            (frame_width - 200, 100),
-                            cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                            (frame_width - 200, 75),
+                            cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
 
         else:
             cv2.putText(webcam_frame, "Failed to detect user!",
@@ -269,7 +266,10 @@ curTime = 0
 YOGA_POSES_PATH = "yoga_poses_imitation_game_images"
 
 YOGA_POSES_FILE_NAMES = [
-    "beginner_chair_pose.jpg"
+    "0_chair_pose.jpg",
+    "0_warriorII.jpg",
+    "1_intense_side_stretch.jpg",
+    "2_wheel_pose.jpg"
 ]
 
 # stores tuples of (yoga pose's name, yoga pose's difficulty)
@@ -277,11 +277,14 @@ YOGA_POSES_FILE_NAMES = [
 # difficulty = 1 means intermediate,
 # difficulty = 2 means advanced.
 YOGA_POSES_NAMES_DIFFICULTIES = [
-    ("Chair Pose", 0)
+    ("Chair Pose", 0),
+    ("Warrior II", 0),
+    ("Intense Side Stretch", 1),
+    ("Wheel Pose", 2)
 ]
 
 # Loading icons
-startButtonImg = cv2.imread("icons/start_button.png")
+startButtonImg = cv2.imread("icons/start_button2.png")
 startButtonImg_WIDTH = startButtonImg.shape[1]
 startButtonImg_HEIGHT = startButtonImg.shape[0]
 
