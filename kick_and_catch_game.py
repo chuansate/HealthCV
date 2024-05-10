@@ -7,8 +7,10 @@
 import cv2
 import mediapipe as mp
 import time
-from Buttons import *
 import sys
+
+from Buttons import ButtonImage
+from kick_and_catch_game_objects import *
 
 
 class KickAndCatchGame():
@@ -16,7 +18,8 @@ class KickAndCatchGame():
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
-
+    punching_img = cv2.imread("icons/punching_smaller.png")
+    kicking_img = cv2.imread("icons/kicking_smaller.png")
     features = [
         mp_pose.PoseLandmark.LEFT_SHOULDER,
         mp_pose.PoseLandmark.RIGHT_SHOULDER,
@@ -73,6 +76,9 @@ class KickAndCatchGame():
         self.__total_game_duration = 12  # the user has to hold the yoga pose for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
+        self.__current_objects_on_frame = []
+        self.__stay_duration = 5  # how long the objects stay on the screen
+        self.__max_num_objects_on_frame = 4
 
     def get_total_game_score(self):
         return self.__total_game_score
@@ -88,6 +94,22 @@ class KickAndCatchGame():
                 int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
                         (frame_width // 2 - 206 // 2, 75),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            if len(self.__current_objects_on_frame) <= self.__max_num_objects_on_frame:
+                self.generate_object(webcam_frame)
+
+    def generate_object(self, frame):
+        """
+        It could be kick object or punch object, at random position but not overlapping with the existing objects on screen
+        :param frame:
+        :return:
+        """
+        self.__current_objects_on_frame.append(
+            PunchObject(frame, KickAndCatchGame.punching_img, (100, 50), self.__stay_duration))
+
+        self.__current_objects_on_frame.append(
+            PunchObject(frame, KickAndCatchGame.punching_img, (180, 100), self.__stay_duration))
+        self.__current_objects_on_frame.append(
+            KickObject(frame, KickAndCatchGame.kicking_img, (300, 50), self.__stay_duration))
 
     def set_game_over(self, value):
         self.__game_over = value
@@ -155,6 +177,7 @@ def render_kick_and_catch_game_UI():
         fps = 1 / (curTime - prevTime)
 
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+
         if not game_started:
             rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgbFrame)
@@ -174,6 +197,7 @@ def render_kick_and_catch_game_UI():
                 game_object = KickAndCatchGame()
                 game_object_created = True
             else:
+
                 if not game_object.get_game_over():
                     cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
