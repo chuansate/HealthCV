@@ -12,8 +12,110 @@ import sys
 
 
 class KickAndCatchGame():
+    mp_pose = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
+
+    features = [
+        mp_pose.PoseLandmark.LEFT_SHOULDER,
+        mp_pose.PoseLandmark.RIGHT_SHOULDER,
+        mp_pose.PoseLandmark.LEFT_ELBOW,
+        mp_pose.PoseLandmark.RIGHT_ELBOW,
+        mp_pose.PoseLandmark.LEFT_WRIST,
+        mp_pose.PoseLandmark.RIGHT_WRIST,
+        mp_pose.PoseLandmark.LEFT_PINKY,
+        mp_pose.PoseLandmark.RIGHT_PINKY,
+        mp_pose.PoseLandmark.LEFT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_INDEX,
+        mp_pose.PoseLandmark.LEFT_THUMB,
+        mp_pose.PoseLandmark.RIGHT_THUMB,
+        mp_pose.PoseLandmark.LEFT_HIP,
+        mp_pose.PoseLandmark.RIGHT_HIP,
+        mp_pose.PoseLandmark.LEFT_KNEE,
+        mp_pose.PoseLandmark.RIGHT_KNEE,
+        mp_pose.PoseLandmark.LEFT_ANKLE,
+        mp_pose.PoseLandmark.RIGHT_ANKLE,
+        mp_pose.PoseLandmark.LEFT_HEEL,
+        mp_pose.PoseLandmark.RIGHT_HEEL,
+        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
+        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
+    ]
+
+    feature_names = [
+        "LEFT_SHOULDER",
+        "RIGHT_SHOULDER",
+        "LEFT_ELBOW",
+        "RIGHT_ELBOW",
+        "LEFT_WRIST",
+        "RIGHT_WRIST",
+        "LEFT_PINKY",
+        "RIGHT_PINKY",
+        "LEFT_INDEX",
+        "RIGHT_INDEX",
+        "LEFT_THUMB",
+        "RIGHT_THUMB",
+        "LEFT_HIP",
+        "RIGHT_HIP",
+        "LEFT_KNEE",
+        "RIGHT_KNEE",
+        "LEFT_ANKLE",
+        "RIGHT_ANKLE",
+        "LEFT_HEEL",
+        "RIGHT_HEEL",
+        "LEFT_FOOT_INDEX",
+        "RIGHT_FOOT_INDEX"
+    ]
+
     def __init__(self):
-        pass
+        self.__total_game_score = 0
+        self.__similarity_threshold = 0.5  # once the similarity exceeds this threshold, then timer starts counting down
+        self.__total_game_duration = 12  # the user has to hold the yoga pose for this long, in seconds
+        self.__game_duration_elapsed = 0
+        self.__game_over = False
+
+    def get_total_game_score(self):
+        return self.__total_game_score
+
+    def count_down_game_duration(self, webcam_frame, currentTime, previousTime):
+        frame_width = webcam_frame.shape[1]
+        self.__game_duration_elapsed += (currentTime - previousTime)
+        if self.__game_duration_elapsed > self.__total_game_duration:
+            self.__game_over = True
+
+        else:
+            cv2.putText(webcam_frame, "Time left: " + str(
+                int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
+                        (frame_width // 2 - 206 // 2, 75),
+                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def set_game_over(self, value):
+        self.__game_over = value
+
+    def get_game_over(self):
+        return self.__game_over
+
+    def render_final_results(self, webcam_frame):
+        """
+        Render final game results of the user, such as total score, best record, some messages...
+        """
+        frame_width = webcam_frame.shape[1]
+        cv2.putText(webcam_frame, "Game over!",
+                    (frame_width // 2 - 206 // 2, 75),
+                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+        cv2.putText(webcam_frame, "Score: " + str(self.__total_game_score),
+                    (frame_width // 2 - 206 // 2, 100),
+                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def save_game_data(self, webcam_frame):
+        """
+        Saving game data into the database
+        :return:
+        """
+        frame_width = webcam_frame.shape[1]
+        cv2.putText(webcam_frame, "Saving game data...",
+                    (frame_width // 2 - 206 // 2, 125),
+                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
 
 def render_kick_and_catch_game_UI():
@@ -29,7 +131,6 @@ def render_kick_and_catch_game_UI():
     mpDraw = mp.solutions.drawing_utils
     prevTime = 0
     curTime = 0
-
 
     # Loading icons
     startButtonImg = cv2.imread("icons/start_button2.png")
@@ -73,23 +174,31 @@ def render_kick_and_catch_game_UI():
                 game_object = KickAndCatchGame()
                 game_object_created = True
             else:
-                cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-                cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
-                            cv2.FONT_HERSHEY_PLAIN, 2,
-                            (255, 0, 255), 2)
-                game_object.display_sample_yoga_pose(frame)
-                cur_similarity_score = game_object.evaluate_user_pose(frame)
-                if cur_similarity_score > game_object.get_similarity_threshold():
-                    game_object.count_down(frame, curTime, prevTime)
+                if not game_object.get_game_over():
+                    cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
+                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
+                                cv2.FONT_HERSHEY_PLAIN, 2,
+                                (255, 0, 255), 2)
+                    game_object.count_down_game_duration(frame, curTime, prevTime)
+                    # game_object.display_sample_yoga_pose(frame)
+                    # cur_similarity_score = game_object.evaluate_user_pose(frame)
+                    # if cur_similarity_score > game_object.get_similarity_threshold():
+                    #     game_object.count_down(frame, curTime, prevTime)
+                    # else:
+                    #     game_object.set_hold_pose_time_elapsed(0)
                 else:
-                    game_object.set_hold_pose_time_elapsed(0)
+                    game_object.render_final_results(frame)
+                    game_object.save_game_data(frame)
+
         prevTime = curTime
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
             if game_started and game_object_created:
-                print("Game over!")
+                game_object.set_game_over(True)
+                game_object.render_final_results(frame)
+                game_object.save_game_data(frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
             break
