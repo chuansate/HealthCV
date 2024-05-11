@@ -20,8 +20,8 @@ class PunchObject:
         self.height = button_img.shape[0]
         self.button_img = button_img
         self.coord_top_left_corner = coord_top_left_corner
-        self.__total_stay_duration = stay_duration
-        self.__stay_duration_elapsed = 0
+        self.total_stay_duration = stay_duration
+        self.stay_duration_elapsed = 0
 
     def isPunched(self, index_finger_tip_x, index_finger_tip_y):
         if (self.coord_top_left_corner[0] <= index_finger_tip_x <=
@@ -31,15 +31,16 @@ class PunchObject:
             return True
         return False
 
-    def count_down(self, frame, currentTime, previousTime):
-        self.__stay_duration_elapsed += (currentTime - previousTime)
-        if self.__stay_duration_elapsed > self.__total_stay_duration:
-            pass
+    def isExpired(self, currentTime, previousTime):
+        self.stay_duration_elapsed += (currentTime - previousTime)
+        if self.stay_duration_elapsed > self.total_stay_duration:
+            return True
         else:
-            cv2.putText(frame, str(
-                int(round(self.__total_stay_duration - self.__stay_duration_elapsed, 0))),
-                        self.coord_top_left_corner,
-                        cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            # cv2.putText(frame, str(
+            #     int(round(self.__total_stay_duration - self.__stay_duration_elapsed, 0))),
+            #             self.coord_top_left_corner,
+            #             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            return False
 
 
 class KickObject:
@@ -60,8 +61,8 @@ class KickObject:
         self.height = button_img.shape[0]
         self.button_img = button_img
         self.coord_top_left_corner = coord_top_left_corner
-        self.__total_stay_duration = stay_duration
-        self.__stay_duration_elapsed = 0
+        self.total_stay_duration = stay_duration
+        self.stay_duration_elapsed = 0
 
     def isKicked(self, foot_index_x, foot_index_y):
         if (self.coord_top_left_corner[0] <= foot_index_x <=
@@ -70,3 +71,14 @@ class KickObject:
                 self.coord_top_left_corner[1] + self.height):
             return True
         return False
+
+    def isExpired(self, currentTime, previousTime):
+        self.stay_duration_elapsed += (currentTime - previousTime)
+        if self.stay_duration_elapsed > self.total_stay_duration:
+            return True
+        else:
+            # cv2.putText(frame, str(
+            #     int(round(self.__total_stay_duration - self.__stay_duration_elapsed, 0))),
+            #             self.coord_top_left_corner,
+            #             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            return False

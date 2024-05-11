@@ -72,8 +72,7 @@ class KickAndCatchGame:
 
     def __init__(self):
         self.__total_game_score = 0
-        self.__similarity_threshold = 0.5  # once the similarity exceeds this threshold, then timer starts counting down
-        self.__total_game_duration = 60  # the user has to hold the yoga pose for this long, in seconds
+        self.__total_game_duration = 50  # the game lasts for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
         self.__stay_duration = 5  # how long the objects stay on the screen
@@ -98,6 +97,21 @@ class KickAndCatchGame:
             webcam_frame.flags.writeable = False
             pose_results = KickAndCatchGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
             webcam_frame.flags.writeable = True
+            if len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
+                self.generate_object(webcam_frame)
+
+            self.render_objects_onto_screen(webcam_frame)
+            obj_index = 0
+            for obj in self.__current_objects_on_frame:
+                if obj.isExpired(currentTime, previousTime):
+                    self.__current_objects_on_frame.pop(obj_index)
+                    self.decrease_game_score()
+                else:
+                    cv2.putText(webcam_frame, str(
+                        int(round(obj.total_stay_duration - obj.stay_duration_elapsed, 0))),
+                                obj.coord_top_left_corner,
+                                cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 1)
+                obj_index += 1
             if pose_results.pose_landmarks:
                 left_index_finger_tip_x = pose_results.pose_landmarks.landmark[
                     KickAndCatchGame.mp_pose.PoseLandmark.LEFT_INDEX].x * frame_width
@@ -125,17 +139,21 @@ class KickAndCatchGame:
                     if isinstance(obj, PunchObject):
                         if obj.isPunched(left_index_finger_tip_x, left_index_finger_tip_y):
                             self.__current_objects_on_frame.remove(obj)
+                            self.increase_game_score()
                             break
                         if obj.isPunched(right_index_finger_tip_x, right_index_finger_tip_y):
                             self.__current_objects_on_frame.remove(obj)
+                            self.increase_game_score()
                             break
 
                     if isinstance(obj, KickObject):
                         if obj.isKicked(left_foot_index_x, left_foot_index_y):
                             self.__current_objects_on_frame.remove(obj)
+                            self.increase_game_score()
                             break
                         if obj.isKicked(right_foot_index_x, right_foot_index_y):
                             self.__current_objects_on_frame.remove(obj)
+                            self.increase_game_score()
                             break
 
             else:
@@ -143,10 +161,7 @@ class KickAndCatchGame:
                             (frame_width // 2 - 206 // 2, 50),
                             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
-            if len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
-                self.generate_object(webcam_frame)
 
-            self.render_objects_onto_screen(webcam_frame)
 
     def generate_object(self, frame):
         """
@@ -211,6 +226,13 @@ class KickAndCatchGame:
         cv2.putText(webcam_frame, "Saving game data...",
                     (frame_width // 2 - 206 // 2, 125),
                     cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def increase_game_score(self):
+        self.__total_game_score += 2
+
+    def decrease_game_score(self):
+        if self.__total_game_score > 0:
+            self.__total_game_score -= 1
 
 
 def render_kick_and_catch_game_UI():
