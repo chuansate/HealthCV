@@ -78,7 +78,7 @@ class KickAndCatchGame():
         self.__game_over = False
         self.__stay_duration = 5  # how long the objects stay on the screen
         self.__max_num_objects_on_frame = 4
-        self.__current_objects_on_frame = [PunchObject(KickAndCatchGame.punching_img, (100, 50), self.__stay_duration)]
+        self.__current_objects_on_frame = []
 
     def get_total_game_score(self):
         return self.__total_game_score
@@ -94,16 +94,7 @@ class KickAndCatchGame():
                 int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
                         (frame_width // 2 - 206 // 2, 25),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
-            """
-            for obj in self.__current_objects_on_frame:
-                if obj is KickObj and obj.isKicked():
-                    remove the obj from the list
-                    break
-                if obj is PunchObj and obj.isPunched():
-                    remove the obj from the list
-                    break
-            """
-            if len(self.__current_objects_on_frame) <= self.__max_num_objects_on_frame:
+            if len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
                 self.generate_object(webcam_frame)
 
             self.render_objects_onto_screen(webcam_frame)
@@ -120,13 +111,19 @@ class KickAndCatchGame():
         while True:
             duplicated = False
             random_coordinates = (random.randint(0, frame_width-50), random.randint(50, frame_height-50))
+            if len(self.__current_objects_on_frame) > 0:
+                for obj in self.__current_objects_on_frame:
+                    if (obj.coord_top_left_corner[0] <= random_coordinates[0] <= obj.coord_top_left_corner[0] + obj.width) or (
+                            obj.coord_top_left_corner[1] <= random_coordinates[1] <=
+                            obj.coord_top_left_corner[1] + obj.height):
+                        duplicated = True
+                        break
 
             if not duplicated:
                 break
 
-        obj = PunchObject() if random.randint(0, 1) == 0 else KickObject()
-        self.__current_objects_on_frame.append(
-            PunchObject(KickAndCatchGame.punching_img, (180, 100), self.__stay_duration))
+        obj = PunchObject(KickAndCatchGame.punching_img, random_coordinates, self.__stay_duration) if random.randint(0, 1) == 0 else KickObject(KickAndCatchGame.kicking_img, random_coordinates, self.__stay_duration)
+        self.__current_objects_on_frame.append(obj)
 
     def render_objects_onto_screen(self, frame):
         if len(self.__current_objects_on_frame) != 0:
