@@ -3,7 +3,7 @@
  The objects with foot icon means the user has to hit it using foot,
  while the objects with hand icon means the user has to hit it using hand.
 """
-
+import random
 import cv2
 import mediapipe as mp
 import time
@@ -76,9 +76,9 @@ class KickAndCatchGame():
         self.__total_game_duration = 12  # the user has to hold the yoga pose for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
-        self.__current_objects_on_frame = []
         self.__stay_duration = 5  # how long the objects stay on the screen
         self.__max_num_objects_on_frame = 4
+        self.__current_objects_on_frame = [PunchObject(KickAndCatchGame.punching_img, (100, 50), self.__stay_duration)]
 
     def get_total_game_score(self):
         return self.__total_game_score
@@ -92,10 +92,21 @@ class KickAndCatchGame():
         else:
             cv2.putText(webcam_frame, "Time left: " + str(
                 int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
-                        (frame_width // 2 - 206 // 2, 75),
+                        (frame_width // 2 - 206 // 2, 25),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            """
+            for obj in self.__current_objects_on_frame:
+                if obj is KickObj and obj.isKicked():
+                    remove the obj from the list
+                    break
+                if obj is PunchObj and obj.isPunched():
+                    remove the obj from the list
+                    break
+            """
             if len(self.__current_objects_on_frame) <= self.__max_num_objects_on_frame:
                 self.generate_object(webcam_frame)
+
+            self.render_objects_onto_screen(webcam_frame)
 
     def generate_object(self, frame):
         """
@@ -103,13 +114,26 @@ class KickAndCatchGame():
         :param frame:
         :return:
         """
-        self.__current_objects_on_frame.append(
-            PunchObject(frame, KickAndCatchGame.punching_img, (100, 50), self.__stay_duration))
+        frame_height = frame.shape[0]
+        frame_width = frame.shape[1]
+        random_coordinates = (0, 0)
+        while True:
+            duplicated = False
+            random_coordinates = (random.randint(0, frame_width-50), random.randint(50, frame_height-50))
 
+            if not duplicated:
+                break
+
+        obj = PunchObject() if random.randint(0, 1) == 0 else KickObject()
         self.__current_objects_on_frame.append(
-            PunchObject(frame, KickAndCatchGame.punching_img, (180, 100), self.__stay_duration))
-        self.__current_objects_on_frame.append(
-            KickObject(frame, KickAndCatchGame.kicking_img, (300, 50), self.__stay_duration))
+            PunchObject(KickAndCatchGame.punching_img, (180, 100), self.__stay_duration))
+
+    def render_objects_onto_screen(self, frame):
+        if len(self.__current_objects_on_frame) != 0:
+            for obj in self.__current_objects_on_frame:
+                x = obj.coord_top_left_corner[0]
+                y = obj.coord_top_left_corner[1]
+                frame[y:y + obj.height, x:x + obj.width] = obj.button_img
 
     def set_game_over(self, value):
         self.__game_over = value
