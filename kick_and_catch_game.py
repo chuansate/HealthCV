@@ -13,7 +13,7 @@ from Buttons import ButtonImage
 from kick_and_catch_game_objects import *
 
 
-class KickAndCatchGame():
+class KickAndCatchGame:
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
@@ -73,7 +73,7 @@ class KickAndCatchGame():
     def __init__(self):
         self.__total_game_score = 0
         self.__similarity_threshold = 0.5  # once the similarity exceeds this threshold, then timer starts counting down
-        self.__total_game_duration = 12  # the user has to hold the yoga pose for this long, in seconds
+        self.__total_game_duration = 60  # the user has to hold the yoga pose for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
         self.__stay_duration = 5  # how long the objects stay on the screen
@@ -85,6 +85,7 @@ class KickAndCatchGame():
 
     def count_down_game_duration(self, webcam_frame, currentTime, previousTime):
         frame_width = webcam_frame.shape[1]
+        frame_height = webcam_frame.shape[0]
         self.__game_duration_elapsed += (currentTime - previousTime)
         if self.__game_duration_elapsed > self.__total_game_duration:
             self.__game_over = True
@@ -94,6 +95,54 @@ class KickAndCatchGame():
                 int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
                         (frame_width // 2 - 206 // 2, 25),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            webcam_frame.flags.writeable = False
+            pose_results = KickAndCatchGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
+            webcam_frame.flags.writeable = True
+            if pose_results.pose_landmarks:
+                left_index_finger_tip_x = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.LEFT_INDEX].x * frame_width
+                left_index_finger_tip_y = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.LEFT_INDEX].y * frame_height
+                right_index_finger_tip_x = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_INDEX].x * frame_width
+                right_index_finger_tip_y = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_INDEX].y * frame_height
+
+                left_foot_index_x = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.LEFT_FOOT_INDEX].x * frame_width
+                left_foot_index_y = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.LEFT_FOOT_INDEX].y * frame_height
+                right_foot_index_x = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_FOOT_INDEX].x * frame_width
+                right_foot_index_y = pose_results.pose_landmarks.landmark[
+                    KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_FOOT_INDEX].y * frame_height
+                KickAndCatchGame.mp_drawing.draw_landmarks(
+                    webcam_frame,
+                    pose_results.pose_landmarks,
+                    KickAndCatchGame.mp_pose.POSE_CONNECTIONS,
+                    landmark_drawing_spec=KickAndCatchGame.mp_drawing_styles.get_default_pose_landmarks_style())
+                for obj in self.__current_objects_on_frame:
+                    if isinstance(obj, PunchObject):
+                        if obj.isPunched(left_index_finger_tip_x, left_index_finger_tip_y):
+                            self.__current_objects_on_frame.remove(obj)
+                            break
+                        if obj.isPunched(right_index_finger_tip_x, right_index_finger_tip_y):
+                            self.__current_objects_on_frame.remove(obj)
+                            break
+
+                    if isinstance(obj, KickObject):
+                        if obj.isKicked(left_foot_index_x, left_foot_index_y):
+                            self.__current_objects_on_frame.remove(obj)
+                            break
+                        if obj.isKicked(right_foot_index_x, right_foot_index_y):
+                            self.__current_objects_on_frame.remove(obj)
+                            break
+
+            else:
+                cv2.putText(webcam_frame, "Failed to detect user!",
+                            (frame_width // 2 - 206 // 2, 50),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
             if len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
                 self.generate_object(webcam_frame)
 
@@ -110,10 +159,11 @@ class KickAndCatchGame():
         random_coordinates = (0, 0)
         while True:
             duplicated = False
-            random_coordinates = (random.randint(0, frame_width-50), random.randint(50, frame_height-50))
+            random_coordinates = (random.randint(0, frame_width - 50), random.randint(50, frame_height - 50))
             if len(self.__current_objects_on_frame) > 0:
                 for obj in self.__current_objects_on_frame:
-                    if (obj.coord_top_left_corner[0] <= random_coordinates[0] <= obj.coord_top_left_corner[0] + obj.width) or (
+                    if (obj.coord_top_left_corner[0] <= random_coordinates[0] <= obj.coord_top_left_corner[
+                        0] + obj.width) or (
                             obj.coord_top_left_corner[1] <= random_coordinates[1] <=
                             obj.coord_top_left_corner[1] + obj.height):
                         duplicated = True
@@ -122,7 +172,9 @@ class KickAndCatchGame():
             if not duplicated:
                 break
 
-        obj = PunchObject(KickAndCatchGame.punching_img, random_coordinates, self.__stay_duration) if random.randint(0, 1) == 0 else KickObject(KickAndCatchGame.kicking_img, random_coordinates, self.__stay_duration)
+        obj = PunchObject(KickAndCatchGame.punching_img, random_coordinates, self.__stay_duration) if random.randint(0,
+                                                                                                                     1) == 0 else KickObject(
+            KickAndCatchGame.kicking_img, random_coordinates, self.__stay_duration)
         self.__current_objects_on_frame.append(obj)
 
     def render_objects_onto_screen(self, frame):
