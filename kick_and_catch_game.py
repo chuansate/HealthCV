@@ -20,6 +20,7 @@ class KickAndCatchGame:
     pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
     punching_img = cv2.imread("icons/punching_smaller.png")
     kicking_img = cv2.imread("icons/kicking_smaller.png")
+    # exclude the facial landmarks detected by the mediapipe pose model
     features = [
         mp_pose.PoseLandmark.LEFT_SHOULDER,
         mp_pose.PoseLandmark.RIGHT_SHOULDER,
