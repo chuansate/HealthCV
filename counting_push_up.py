@@ -93,13 +93,11 @@ readyToPushUp = 0
 cap = cv2.VideoCapture(0)
 cv2.namedWindow("Counting push-up", cv2.WINDOW_NORMAL)
 cv2.setWindowProperty("Counting push-up", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-pTime = 0
-cTime = 0
+prevTime = 0
+curTime = 0
 TOTAL_COUNT_PUSHUP = 0
-FONT_SCALE = 2
+FONT_SCALE = 1.2
 ready_time_elapsed = 0
-initial_time_ready = 0
-final_time_ready = 0
 
 with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
     while cap.isOpened():
@@ -114,10 +112,10 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         frame = cv2.flip(frame, 1)
         frame_height = frame.shape[0]
         frame_width = frame.shape[1]
-        cTime = time.time()
-        fps = 1 / (cTime - pTime)
-        pTime = cTime
-        cv2.putText(frame, str(int(fps)) + " FPS", (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
+        curTime = time.time()
+        fps = 1 / (curTime - prevTime)
+
+        cv2.putText(frame, str(int(fps)) + " FPS", (10, 70), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
         frame.flags.writeable = False
@@ -127,15 +125,14 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         # Draw the pose annotation on the image.
         frame.flags.writeable = True
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        # mp_drawing.draw_landmarks(frame, results.pose_landmarks,
-        #                           landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
 
         if results.pose_landmarks:
             # if pose landmarks are detected
             # extract the x-, y-, and z-coordinates of the 22 body landmarks as features from the frame
             frame_features = []
             frame_features_dict = {}
-
+            mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                      landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
             for index, ft in enumerate(features):
                 landmark_coordinates = results.pose_landmarks.landmark[ft]
                 frame_features_dict[feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y,
@@ -164,41 +161,37 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             #     else:
             #         pass
             if readyToPushUp == 1:
-                initial_time_ready = time.time()
-                time.sleep(0.2)
-                final_time_ready = time.time()
-                ready_time_elapsed += (final_time_ready - initial_time_ready)
+                ready_time_elapsed += (curTime - prevTime)
                 if ready_time_elapsed >= 3:
                     cv2.putText(frame, "Pushup Count: 0", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
                                 FONT_SCALE, (255, 0, 255),
-                                3)
+                                1)
                     cv2.putText(frame, "Start!",
                                 (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
                                 cv2.FONT_HERSHEY_PLAIN,
                                 FONT_SCALE, (255, 0, 255),
-                                3)
+                                1)
                 else:
                     cv2.putText(frame, "Push-up Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
                                 FONT_SCALE, (255, 0, 255),
-                                3)
+                                1)
                     cv2.putText(frame, "Counting down: " + str(3 - int(ready_time_elapsed)),
                                 (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
                                 cv2.FONT_HERSHEY_PLAIN,
                                 FONT_SCALE, (255, 0, 255),
-                                3)
+                                1)
 
             else:
-                initial_time_ready = 0
-                final_time_ready = 0
                 ready_time_elapsed = 0
                 cv2.putText(frame, "Push-up Non-Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, FONT_SCALE,
-                            (255, 0, 255), 3)
+                            (255, 0, 255), 1)
             cv2.imshow('Counting push-up', frame)
         else:
             cv2.putText(frame, "No person detected!", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
                         FONT_SCALE,
-                        (255, 0, 255), 3)
+                        (255, 0, 255), 1)
             cv2.imshow('Counting push-up', frame)
+        prevTime = curTime
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 cap.release()
