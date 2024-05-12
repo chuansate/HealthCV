@@ -182,7 +182,7 @@ class KickAndCatchGame:
             if len(self.__current_objects_on_frame) > 0:
                 for obj in self.__current_objects_on_frame:
                     if (obj.coord_top_left_corner[0] - obj.width <= random_coordinates[0] <= obj.coord_top_left_corner[
-                        0] + obj.width) or (
+                        0] + obj.width) and (
                             obj.coord_top_left_corner[1] - obj.height <= random_coordinates[1] <=
                             obj.coord_top_left_corner[1] + obj.height):
                         duplicated = True
