@@ -42,6 +42,9 @@ class PunchObject:
             #             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
             return False
 
+    def __str__(self):
+        return f"Punch: {self.coord_top_left_corner}"
+
 
 class KickObject:
     def __init__(self, button_img, coord_top_left_corner, stay_duration):
@@ -82,3 +85,6 @@ class KickObject:
             #             self.coord_top_left_corner,
             #             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
             return False
+
+    def __str__(self):
+        return f"Kick: {self.coord_top_left_corner}"

@@ -97,7 +97,11 @@ class KickAndCatchGame:
             webcam_frame.flags.writeable = False
             pose_results = KickAndCatchGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
             webcam_frame.flags.writeable = True
-            if len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
+            while len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
+                # print("Printing current objects: ")
+                # for obj in self.__current_objects_on_frame:
+                #     print(obj)
+                # print()
                 self.generate_object(webcam_frame)
 
             self.render_objects_onto_screen(webcam_frame)
@@ -107,6 +111,7 @@ class KickAndCatchGame:
                     self.__current_objects_on_frame.pop(obj_index)
                     self.decrease_game_score()
                 else:
+                    # Render countdown for each object
                     cv2.putText(webcam_frame, str(
                         int(round(obj.total_stay_duration - obj.stay_duration_elapsed, 0))),
                                 obj.coord_top_left_corner,
@@ -161,8 +166,6 @@ class KickAndCatchGame:
                             (frame_width // 2 - 206 // 2, 50),
                             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
-
-
     def generate_object(self, frame):
         """
         It could be kick object or punch object, at random position but not overlapping with the existing objects on screen
@@ -174,12 +177,13 @@ class KickAndCatchGame:
         random_coordinates = (0, 0)
         while True:
             duplicated = False
-            random_coordinates = (random.randint(0, frame_width - 50), random.randint(50, frame_height - 50))
+            # the step size is 50 (height and width of the icons), this is too ensure the program is not stucked at random generation too long
+            random_coordinates = (random.randrange(0, frame_width - 49, 50), random.randrange(50, frame_height - 49, 50))
             if len(self.__current_objects_on_frame) > 0:
                 for obj in self.__current_objects_on_frame:
-                    if (obj.coord_top_left_corner[0] <= random_coordinates[0] <= obj.coord_top_left_corner[
+                    if (obj.coord_top_left_corner[0] - obj.width <= random_coordinates[0] <= obj.coord_top_left_corner[
                         0] + obj.width) or (
-                            obj.coord_top_left_corner[1] <= random_coordinates[1] <=
+                            obj.coord_top_left_corner[1] - obj.height <= random_coordinates[1] <=
                             obj.coord_top_left_corner[1] + obj.height):
                         duplicated = True
                         break
