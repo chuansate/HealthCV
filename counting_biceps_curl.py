@@ -78,9 +78,29 @@ class CountingBicepsCurl:
         self.__biceps_curl_count = 0
         self.__user_in_ready_pose = False  # when the user straightens their arm
 
-    def userInReadyPose(self):
+    def userInReadyPose(self, frame):
         # pass in the body landmarks and calculate the angle at ankle
+        # keyword: calculate the angle betw 2 vectors
         return False
+
+    def detect_body_landmarks(self, frame):
+        USER_NOT_EXIST = "Failed to detect user!"
+        USER_NOT_EXIST_fs = 1
+        USER_NOT_EXIST_th = 1
+        # To improve performance, optionally mark the image as not writeable to
+        # pass by reference.
+        frame.flags.writeable = False
+        results = CountingBicepsCurl.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        frame.flags.writeable = True
+        if results.pose_landmarks:
+            CountingBicepsCurl.mp_drawing.draw_landmarks(frame, results.pose_landmarks, CountingBicepsCurl.mp_pose.POSE_CONNECTIONS,
+                                      landmark_drawing_spec=CountingBicepsCurl.mp_drawing_styles.get_default_pose_landmarks_style())
+        else:
+            # Fails to detect the user
+            center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
+                                            USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
+
+        return results
 
     def get_biceps_curl_count(self):
         return self.__biceps_curl_count
@@ -122,14 +142,16 @@ def render_counting_biceps_curl_UI():
             cbc_obj = CountingBicepsCurl()
             counting_biceps_curl_object_created = True
         else:
-            if cbc_obj.userInReadyPose():
-                cv2.putText(frame, "Count: " + str(cbc_obj.get_biceps_curl_count()), (50, 25),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-            else:
-                # Ask the user to get into the ready pose of biceps curl
-                center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs,
-                                                GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+            body_landmarks = cbc_obj.detect_body_landmarks(frame)
+            if body_landmarks:
+                if cbc_obj.userInReadyPose(frame):
+                    cv2.putText(frame, "Count: " + str(cbc_obj.get_biceps_curl_count()), (50, 25),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
+                else:
+                    # Ask the user to get into the ready pose of biceps curl
+                    center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs,
+                                                    GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
 
         prevTime = curTime
         cv2.imshow('Frame', frame)
