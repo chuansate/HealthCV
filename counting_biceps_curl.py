@@ -50,10 +50,14 @@ class CountingBicepsCurl:
 
     def __init__(self):
         self.__left_biceps_curl_count = 0
+        self.__left_arm_status = 0  # 0 means left arm is straightened, 1 means lifting the dumbbell.
         self.__right_biceps_curl_count = 0
+        self.__right_arm_status = 0  # 0 means right arm is straightened, 1 means lifting the dumbbell.
         self.__left_elbow_angle = 0
         self.__right_elbow_angle = 0
         self.__user_in_ready_pose = False  # when the user straightens their arm
+        self.__ready_pose_ankle_angle = 165  # threshold to determine if the arms are straightened
+        self.__lift_angle = 40  # threshold to determine if the dumbbell is raised high enough
 
     def userInReadyPose(self, pose_results):
         # pass in the body landmarks and calculate the angle at ankle
@@ -70,8 +74,13 @@ class CountingBicepsCurl:
         left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "RIGHT_ELBOW", "RIGHT_SHOULDER")
         left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "RIGHT_ELBOW", "RIGHT_WRIST")
         self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
-
-        if self.__left_elbow_angle > 175:
+        right_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
+        right_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
+        self.__right_elbow_angle = self._get_angle_betw_two_vectors(right_vec_elbow_to_shoulder, right_vec_elbow_to_wrist)
+        if self.__left_elbow_angle >= self.__ready_pose_ankle_angle or self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
+            return True
+        elif self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
+            self.__right_arm_status = 0
             return True
         else:
             return False
@@ -88,6 +97,19 @@ class CountingBicepsCurl:
                                                          landmark_drawing_spec=CountingBicepsCurl.mp_drawing_styles.get_default_pose_landmarks_style())
 
         return results
+
+    def update_counter(self):
+        if self.__left_arm_status == 0 and self.__left_elbow_angle <= self.__lift_angle:
+            self.__left_arm_status = 1
+        elif self.__left_arm_status == 1 and self.__left_elbow_angle >= self.__ready_pose_ankle_angle:
+            self.__left_arm_status = 0
+            self.__left_biceps_curl_count += 1
+
+        if self.__right_arm_status == 0 and self.__right_elbow_angle <= self.__lift_angle:
+            self.__right_arm_status = 1
+        elif self.__right_arm_status == 1 and self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
+            self.__right_arm_status = 0
+            self.__right_biceps_curl_count += 1
 
     def get_left_biceps_curl_count(self):
         return self.__left_biceps_curl_count
@@ -118,11 +140,23 @@ class CountingBicepsCurl:
 
     def _get_angle_betw_two_vectors(self, vec1, vec2):
         angle_radian = math.acos((np.dot(vec1, vec2)) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-        return round(math.degrees(angle_radian), 0)
+        return int(round(math.degrees(angle_radian), 0))
 
     def get_left_elbow_angle(self):
         return self.__left_elbow_angle
 
+    def get_right_elbow_angle(self):
+        return self.__right_elbow_angle
+
+    def get_left_arm_status(self):
+        return self.__left_arm_status
+
+    def get_right_arm_status(self):
+        return self.__right_arm_status
+
+    def reset_arms_status(self):
+        self.__left_arm_status = 0
+        self.__right_arm_status = 0
 
 def render_counting_biceps_curl_UI():
     cap = cv2.VideoCapture(0)
@@ -140,6 +174,9 @@ def render_counting_biceps_curl_UI():
     GET_INTO_READY_POSE = "Please get into ready pose"
     GET_INTO_READY_POSE_fs = 1
     GET_INTO_READY_POSE_th = 1
+    FACE_CAMERA = "Face the camera"
+    FACE_CAMERA_fs = 1
+    FACE_CAMERA_th = 1
     USER_NOT_EXIST = "Failed to detect user!"
     USER_NOT_EXIST_fs = 1
     USER_NOT_EXIST_th = 1
@@ -168,21 +205,46 @@ def render_counting_biceps_curl_UI():
                 cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 125),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 0, 255), 1)
+                cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 150),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
                 if cbc_obj.userInReadyPose(pose_results):
+                    cbc_obj.update_counter()
                     cv2.putText(frame, "Left Count: " + str(cbc_obj.get_left_biceps_curl_count()), (50, 75),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
                     cv2.putText(frame, "Right Count: " + str(cbc_obj.get_right_biceps_curl_count()), (50, 100),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
+                    if cbc_obj.get_left_arm_status() == 0:
+                        cv2.putText(frame, "L. Arm: DOWN", (frame_width-150, 50),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+                    else:
+                        cv2.putText(frame, "L. Arm: UP", (frame_width - 150, 50),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+                    if cbc_obj.get_right_arm_status() == 0:
+                        cv2.putText(frame, "R. Arm: DOWN", (frame_width-150, 75),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+                    else:
+                        cv2.putText(frame, "R. Arm: UP", (frame_width - 150, 75),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+
                 else:
                     # Ask the user to get into the ready pose of biceps curl
+                    cbc_obj.reset_arms_status()
                     center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs,
                                                     GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+                    center_opencv_text_horizontally(frame, 125, FACE_CAMERA, FACE_CAMERA_fs,
+                                                    FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
             else:
                 # Fails to detect the user
                 center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
                                                 USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
+                cbc_obj.reset_arms_status()
         prevTime = curTime
 
         cv2.imshow('Frame', frame)
