@@ -51,22 +51,24 @@ class CountingBicepsCurl:
     def __init__(self):
         self.__left_biceps_curl_count = 0
         self.__right_biceps_curl_count = 0
-        self.__left_elbow_angle = -1
-        self.__right_elbow_angle = -1
+        self.__left_elbow_angle = 0
+        self.__right_elbow_angle = 0
         self.__user_in_ready_pose = False  # when the user straightens their arm
 
-    def userInReadyPose(self, pose_landmarks):
+    def userInReadyPose(self, pose_results):
         # pass in the body landmarks and calculate the angle at ankle
         # keyword: calculate the angle betw 2 vectors
         # extract the x-, and y-coordinates of the 8 body landmarks as features
         landmarks_dict = {}
         for index, ft in enumerate(CountingBicepsCurl.features):
-            landmark_coordinates = pose_landmarks.pose_landmarks.landmark[ft]
+            landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
             landmarks_dict[CountingBicepsCurl.feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y]
         landmarks_dict = self.normalize_pose_landmarks(landmarks_dict)
 
-        left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
-        left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
+        # To find the left arm, we have to extract the right arm landmarks. The same goes to the right arm.
+        # This is because the webcam frame got flipped horizontally at the beginning!
+        left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "RIGHT_ELBOW", "RIGHT_SHOULDER")
+        left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "RIGHT_ELBOW", "RIGHT_WRIST")
         self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
 
         if self.__left_elbow_angle > 175:
@@ -75,9 +77,6 @@ class CountingBicepsCurl:
             return False
 
     def detect_pose_landmarks(self, frame):
-        USER_NOT_EXIST = "Failed to detect user!"
-        USER_NOT_EXIST_fs = 1
-        USER_NOT_EXIST_th = 1
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
         frame.flags.writeable = False
@@ -87,10 +86,6 @@ class CountingBicepsCurl:
             CountingBicepsCurl.mp_drawing.draw_landmarks(frame, results.pose_landmarks,
                                                          CountingBicepsCurl.mp_pose.POSE_CONNECTIONS,
                                                          landmark_drawing_spec=CountingBicepsCurl.mp_drawing_styles.get_default_pose_landmarks_style())
-        else:
-            # Fails to detect the user
-            center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
-                                            USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
 
         return results
 
@@ -145,6 +140,9 @@ def render_counting_biceps_curl_UI():
     GET_INTO_READY_POSE = "Please get into ready pose"
     GET_INTO_READY_POSE_fs = 1
     GET_INTO_READY_POSE_th = 1
+    USER_NOT_EXIST = "Failed to detect user!"
+    USER_NOT_EXIST_fs = 1
+    USER_NOT_EXIST_th = 1
 
     while True:
         success, frame = cap.read()
@@ -165,12 +163,12 @@ def render_counting_biceps_curl_UI():
             cbc_obj = CountingBicepsCurl()
             counting_biceps_curl_object_created = True
         else:
-            pose_landmarks = cbc_obj.detect_pose_landmarks(frame)
-            if pose_landmarks:
+            pose_results = cbc_obj.detect_pose_landmarks(frame)
+            if pose_results.pose_landmarks:
                 cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 125),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 0, 255), 1)
-                if cbc_obj.userInReadyPose(pose_landmarks):
+                if cbc_obj.userInReadyPose(pose_results):
                     cv2.putText(frame, "Left Count: " + str(cbc_obj.get_left_biceps_curl_count()), (50, 75),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
@@ -181,8 +179,12 @@ def render_counting_biceps_curl_UI():
                     # Ask the user to get into the ready pose of biceps curl
                     center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs,
                                                     GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-
+            else:
+                # Fails to detect the user
+                center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
+                                                USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
         prevTime = curTime
+
         cv2.imshow('Frame', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
