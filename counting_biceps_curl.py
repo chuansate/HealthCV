@@ -8,6 +8,8 @@ import cv2
 import mediapipe as mp
 import time
 import sys
+import numpy as np
+import math
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -31,22 +33,8 @@ class CountingBicepsCurl:
         mp_pose.PoseLandmark.RIGHT_ELBOW,
         mp_pose.PoseLandmark.LEFT_WRIST,
         mp_pose.PoseLandmark.RIGHT_WRIST,
-        mp_pose.PoseLandmark.LEFT_PINKY,
-        mp_pose.PoseLandmark.RIGHT_PINKY,
-        mp_pose.PoseLandmark.LEFT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_INDEX,
-        mp_pose.PoseLandmark.LEFT_THUMB,
-        mp_pose.PoseLandmark.RIGHT_THUMB,
         mp_pose.PoseLandmark.LEFT_HIP,
-        mp_pose.PoseLandmark.RIGHT_HIP,
-        mp_pose.PoseLandmark.LEFT_KNEE,
-        mp_pose.PoseLandmark.RIGHT_KNEE,
-        mp_pose.PoseLandmark.LEFT_ANKLE,
-        mp_pose.PoseLandmark.RIGHT_ANKLE,
-        mp_pose.PoseLandmark.LEFT_HEEL,
-        mp_pose.PoseLandmark.RIGHT_HEEL,
-        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
+        mp_pose.PoseLandmark.RIGHT_HIP
     ]
 
     feature_names = [
@@ -56,34 +44,37 @@ class CountingBicepsCurl:
         "RIGHT_ELBOW",
         "LEFT_WRIST",
         "RIGHT_WRIST",
-        "LEFT_PINKY",
-        "RIGHT_PINKY",
-        "LEFT_INDEX",
-        "RIGHT_INDEX",
-        "LEFT_THUMB",
-        "RIGHT_THUMB",
         "LEFT_HIP",
-        "RIGHT_HIP",
-        "LEFT_KNEE",
-        "RIGHT_KNEE",
-        "LEFT_ANKLE",
-        "RIGHT_ANKLE",
-        "LEFT_HEEL",
-        "RIGHT_HEEL",
-        "LEFT_FOOT_INDEX",
-        "RIGHT_FOOT_INDEX"
+        "RIGHT_HIP"
     ]
 
     def __init__(self):
-        self.__biceps_curl_count = 0
+        self.__left_biceps_curl_count = 0
+        self.__right_biceps_curl_count = 0
+        self.__left_elbow_angle = -1
+        self.__right_elbow_angle = -1
         self.__user_in_ready_pose = False  # when the user straightens their arm
 
-    def userInReadyPose(self, frame):
+    def userInReadyPose(self, pose_landmarks):
         # pass in the body landmarks and calculate the angle at ankle
         # keyword: calculate the angle betw 2 vectors
-        return False
+        # extract the x-, and y-coordinates of the 8 body landmarks as features
+        landmarks_dict = {}
+        for index, ft in enumerate(CountingBicepsCurl.features):
+            landmark_coordinates = pose_landmarks.pose_landmarks.landmark[ft]
+            landmarks_dict[CountingBicepsCurl.feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y]
+        landmarks_dict = self.normalize_pose_landmarks(landmarks_dict)
 
-    def detect_body_landmarks(self, frame):
+        left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
+        left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
+        self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
+
+        if self.__left_elbow_angle > 175:
+            return True
+        else:
+            return False
+
+    def detect_pose_landmarks(self, frame):
         USER_NOT_EXIST = "Failed to detect user!"
         USER_NOT_EXIST_fs = 1
         USER_NOT_EXIST_th = 1
@@ -93,8 +84,9 @@ class CountingBicepsCurl:
         results = CountingBicepsCurl.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         frame.flags.writeable = True
         if results.pose_landmarks:
-            CountingBicepsCurl.mp_drawing.draw_landmarks(frame, results.pose_landmarks, CountingBicepsCurl.mp_pose.POSE_CONNECTIONS,
-                                      landmark_drawing_spec=CountingBicepsCurl.mp_drawing_styles.get_default_pose_landmarks_style())
+            CountingBicepsCurl.mp_drawing.draw_landmarks(frame, results.pose_landmarks,
+                                                         CountingBicepsCurl.mp_pose.POSE_CONNECTIONS,
+                                                         landmark_drawing_spec=CountingBicepsCurl.mp_drawing_styles.get_default_pose_landmarks_style())
         else:
             # Fails to detect the user
             center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
@@ -102,8 +94,39 @@ class CountingBicepsCurl:
 
         return results
 
-    def get_biceps_curl_count(self):
-        return self.__biceps_curl_count
+    def get_left_biceps_curl_count(self):
+        return self.__left_biceps_curl_count
+
+    def get_right_biceps_curl_count(self):
+        return self.__right_biceps_curl_count
+
+    def normalize_pose_landmarks(self, pose_landmarks_dict):
+        """Calculates pose center as point between hips."""
+        left_hip = pose_landmarks_dict['LEFT_HIP']
+        right_hip = pose_landmarks_dict['RIGHT_HIP']
+        center = []
+        for i in range(len(left_hip)):
+            center.append((left_hip[i] + right_hip[i]) * 0.5)
+        for key, coordinates in pose_landmarks_dict.items():
+            for i in range(len(coordinates)):
+                coordinates[i] -= center[i]
+            pose_landmarks_dict[key] = coordinates
+        return pose_landmarks_dict
+
+    def _get_vector_by_landmark_names(self, landmarks_dict, name_from, name_to):
+        vec_from = np.array(landmarks_dict[name_from])
+        vec_to = np.array(landmarks_dict[name_to])
+        return self._get_vector(vec_from, vec_to)
+
+    def _get_vector(self, vec_from, vec_to):
+        return vec_from - vec_to
+
+    def _get_angle_betw_two_vectors(self, vec1, vec2):
+        angle_radian = math.acos((np.dot(vec1, vec2)) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+        return round(math.degrees(angle_radian), 0)
+
+    def get_left_elbow_angle(self):
+        return self.__left_elbow_angle
 
 
 def render_counting_biceps_curl_UI():
@@ -142,10 +165,16 @@ def render_counting_biceps_curl_UI():
             cbc_obj = CountingBicepsCurl()
             counting_biceps_curl_object_created = True
         else:
-            body_landmarks = cbc_obj.detect_body_landmarks(frame)
-            if body_landmarks:
-                if cbc_obj.userInReadyPose(frame):
-                    cv2.putText(frame, "Count: " + str(cbc_obj.get_biceps_curl_count()), (50, 25),
+            pose_landmarks = cbc_obj.detect_pose_landmarks(frame)
+            if pose_landmarks:
+                cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 125),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
+                if cbc_obj.userInReadyPose(pose_landmarks):
+                    cv2.putText(frame, "Left Count: " + str(cbc_obj.get_left_biceps_curl_count()), (50, 75),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
+                    cv2.putText(frame, "Right Count: " + str(cbc_obj.get_right_biceps_curl_count()), (50, 100),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
                 else:
