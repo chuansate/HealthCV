@@ -1,9 +1,15 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
+
+import pymongo
 from PIL import Image, ImageTk
 
 path_to_bg_img = "./icons/login_background.png"
+HOST = "mongodb://localhost:27017/"
+DATABASE_NAME = "HealthCV"
+USERS_COLLECTION_NAME = "users"
+
 def fitness_games_page():
     pass
 
@@ -53,11 +59,21 @@ def home_page(uname):
 
 
 def validate_login_credentials(window, entered_uname, entered_pwd):
-    if entered_uname == "Low" and entered_pwd == "Low123":
-        window.destroy()
-        home_page("Low")
+    client = pymongo.MongoClient(HOST)
+    db = client[DATABASE_NAME]
+    users_col = db[USERS_COLLECTION_NAME]
+    query = {"uname": entered_uname}
+    found_doc = users_col.find_one(query)
+    if found_doc is not None:
+        if found_doc["pwd"] == entered_pwd:
+            window.destroy()
+            home_page("Low")
+        else:
+            msg = messagebox.showinfo("Warning", "Incorrect password, try again.")
     else:
-        msg = messagebox.showinfo("Warning", "Invalid credentials, try again.")
+        msg = messagebox.showinfo("Warning", "Username does not exist, try again.")
+
+    client.close()
 
 
 def login_page():
