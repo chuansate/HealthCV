@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import cvzone
 
 
 class Button:
