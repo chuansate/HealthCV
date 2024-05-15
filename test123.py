@@ -12,8 +12,10 @@ if "HealthCV" in dblist:
 
 users_collection = mydb["users"]
 
+for rec in users_collection.find():
+    print(rec)
 
-record = { "uname": "Lim", "pwd": "Lim123" }
-
-x = users_collection.insert_one(record)
-print("The record with id " + str(x.inserted_id) + " just got inserted!")
+# record = { "uname": "Lim", "pwd": "Lim123" }
+#
+# x = users_collection.insert_one(record)
+# print("The record with id " + str(x.inserted_id) + " just got inserted!")

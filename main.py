@@ -2,13 +2,18 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
 
+from database_constants import HOST, DATABASE_NAME, USERS_COLLECTION_NAME
 import pymongo
 from PIL import Image, ImageTk
+from pymongo import errors
 
 path_to_bg_img = "./icons/login_background.png"
-HOST = "mongodb://localhost:27017/"
-DATABASE_NAME = "HealthCV"
-USERS_COLLECTION_NAME = "users"
+
+
+def logout(window):
+    window.destroy()
+    login_page()
+
 
 def fitness_games_page():
     pass
@@ -28,6 +33,7 @@ def home_page(uname):
     window = tk.Tk()
     window.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     window.title("Home Page")
+    window.resizable(False, False)
     bg_img = Image.open(path_to_bg_img)
     bg_img = bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
     bg_img = ImageTk.PhotoImage(bg_img, master=window)
@@ -55,6 +61,8 @@ def home_page(uname):
     workout_plan_button = tk.Button(window, text="Workout Plan", font=button_font, bg=button_bg, fg=button_fg,
                                     activebackground=button_active_bg, command=workout_plan_page)
     workout_plan_button.pack(pady=10, ipadx=20, ipady=10)
+    logout_button = tk.Button(window, text="Logout", command=lambda: logout(window))
+    logout_button.place(x=WINDOW_WIDTH-100, y=WINDOW_HEIGHT-50)
     window.mainloop()
 
 
@@ -67,7 +75,7 @@ def validate_login_credentials(window, entered_uname, entered_pwd):
     if found_doc is not None:
         if found_doc["pwd"] == entered_pwd:
             window.destroy()
-            home_page("Low")
+            home_page(entered_uname)
         else:
             msg = messagebox.showinfo("Warning", "Incorrect password, try again.")
     else:
@@ -76,12 +84,55 @@ def validate_login_credentials(window, entered_uname, entered_pwd):
     client.close()
 
 
+def credentials_are_valid(entered_uname, entered_pwd):
+    if len(entered_uname) == 0 or len(entered_pwd) == 0:
+        msg = messagebox.showinfo("Warning", "Username or password can't be empty!")
+        return False
+    elif len(entered_uname) > 10:
+        msg = messagebox.showinfo("Warning", "Username can't contain more than 10 characters!")
+        return False
+    elif len(entered_pwd) > 10:
+        msg = messagebox.showinfo("Warning", "Password can't contain more than 10 characters!")
+        return False
+    else:
+        return True
+
+
+def validate_register_credentials(entered_uname, entered_pwd):
+    if credentials_are_valid(entered_uname, entered_pwd):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        query = {"uname": entered_uname}
+        found_doc = users_col.find_one(query)
+        if found_doc is None:
+            try:
+                users_col.insert_one({
+                    "uname": entered_uname,
+                    "pwd": entered_pwd
+                })
+                msg = messagebox.showinfo("Information", "New account has been registered!")
+            except errors.WriteConcernError as wce:
+                print(wce)
+                msg = messagebox.showinfo("Warning", "Failed to register new account, try again!")
+
+            except errors.WriteError as we:
+                print(we)
+                msg = messagebox.showinfo("Warning", "Failed to register new account, try again!")
+
+        else:
+            msg = messagebox.showinfo("Warning", "Duplicate username, try again.")
+
+        client.close()
+
+
 def login_page():
     WINDOW_WIDTH = 700
     WINDOW_HEIGHT = 400
     window = tk.Tk()
     window.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     window.title("HealthCV")
+    window.resizable(False, False)
     bg_img = Image.open(path_to_bg_img)
     bg_img = bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
     bg_img = ImageTk.PhotoImage(bg_img, master=window)
@@ -117,7 +168,7 @@ def login_page():
     new_pwd_label.grid(row=1, column=0, pady=5)
     new_pwd_tf = Entry(tab2)
     new_pwd_tf.grid(row=1, column=1, pady=5)
-    register_but = ttk.Button(tab2, text="Register")
+    register_but = ttk.Button(tab2, text="Register", command=lambda: validate_register_credentials(new_uname_tf.get(), new_pwd_tf.get()))
     register_but.grid(row=2, column=0, pady=5, columnspan=2)
     notebook.add(tab2, text="Registration tab")
     notebook.pack()
