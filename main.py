@@ -1,87 +1,29 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
-
-from database_constants import HOST, DATABASE_NAME, USERS_COLLECTION_NAME
+from fitness_games_page import fitness_games_page
+from guides_page import guides_page
+from workout_plan_page import workout_plan_page
 import pymongo
 from PIL import Image, ImageTk
 from pymongo import errors
+from data_models import User
 
-path_to_bg_img = "./icons/login_background.png"
-
-
-def logout(window):
-    window.destroy()
-    login_page()
-
-
-def fitness_games_page():
-    pass
-
-
-def workout_plan_page():
-    pass
-
-
-def guides_page():
-    pass
-
-
-def home_page(uname):
-    WINDOW_WIDTH = 700
-    WINDOW_HEIGHT = 400
-    window = tk.Tk()
-    window.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
-    window.title("Home Page")
-    window.resizable(False, False)
-    bg_img = Image.open(path_to_bg_img)
-    bg_img = bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
-    bg_img = ImageTk.PhotoImage(bg_img, master=window)
-    img_label = Label(window, image=bg_img)
-    img_label.place(x=0, y=0)
-    # Three buttons: Fitness games, Guides, Workout plan (setting sets and reps, then record the data on everyday)
-    # Adding a title label
-    title_label = tk.Label(window, text="Welcome back, " + uname + "!", font=("Helvetica", 16, "bold"), bg='#f0f0f0')
-    title_label.pack(pady=20)
-
-    # Creating buttons with styling
-    button_font = ("Helvetica", 12, "bold")
-    button_bg = "#4CAF50"  # Green background
-    button_fg = "#ffffff"  # White text
-    button_active_bg = "#45a049"
-
-    fitness_games_button = tk.Button(window, text="Fitness Games", font=button_font, bg=button_bg, fg=button_fg,
-                                     activebackground=button_active_bg, command=fitness_games_page)
-    fitness_games_button.pack(pady=10, ipadx=20, ipady=10)
-
-    guides_button = tk.Button(window, text="Guides", font=button_font, bg=button_bg, fg=button_fg,
-                              activebackground=button_active_bg, command=guides_page)
-    guides_button.pack(pady=10, ipadx=20, ipady=10)
-
-    workout_plan_button = tk.Button(window, text="Workout Plan", font=button_font, bg=button_bg, fg=button_fg,
-                                    activebackground=button_active_bg, command=workout_plan_page)
-    workout_plan_button.pack(pady=10, ipadx=20, ipady=10)
-    logout_button = tk.Button(window, text="Logout", command=lambda: logout(window))
-    logout_button.place(x=WINDOW_WIDTH-100, y=WINDOW_HEIGHT-50)
-    window.mainloop()
+from paths_to_images import PATH_TO_BACKGROUND_IMG
 
 
 def validate_login_credentials(window, entered_uname, entered_pwd):
-    client = pymongo.MongoClient(HOST)
-    db = client[DATABASE_NAME]
-    users_col = db[USERS_COLLECTION_NAME]
-    query = {"uname": entered_uname}
-    found_doc = users_col.find_one(query)
-    if found_doc is not None:
-        if found_doc["pwd"] == entered_pwd:
+    user = User(entered_uname, entered_pwd)
+    found = user.search_by_uname()
+    if found is not None:
+        if found["pwd"] == entered_pwd:
+            from home_page import home_page
             window.destroy()
             home_page(entered_uname)
         else:
             msg = messagebox.showinfo("Warning", "Incorrect password, try again.")
     else:
         msg = messagebox.showinfo("Warning", "Username does not exist, try again.")
-
-    client.close()
 
 
 def credentials_are_valid(entered_uname, entered_pwd):
@@ -100,17 +42,11 @@ def credentials_are_valid(entered_uname, entered_pwd):
 
 def validate_register_credentials(entered_uname, entered_pwd):
     if credentials_are_valid(entered_uname, entered_pwd):
-        client = pymongo.MongoClient(HOST)
-        db = client[DATABASE_NAME]
-        users_col = db[USERS_COLLECTION_NAME]
-        query = {"uname": entered_uname}
-        found_doc = users_col.find_one(query)
-        if found_doc is None:
+        new_user = User(entered_uname, entered_pwd)
+        found = new_user.search_by_uname()
+        if found is None:
             try:
-                users_col.insert_one({
-                    "uname": entered_uname,
-                    "pwd": entered_pwd
-                })
+                new_user.create_new_user()
                 msg = messagebox.showinfo("Information", "New account has been registered!")
             except errors.WriteConcernError as wce:
                 print(wce)
@@ -123,8 +59,6 @@ def validate_register_credentials(entered_uname, entered_pwd):
         else:
             msg = messagebox.showinfo("Warning", "Duplicate username, try again.")
 
-        client.close()
-
 
 def login_page():
     WINDOW_WIDTH = 700
@@ -133,7 +67,7 @@ def login_page():
     window.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     window.title("HealthCV")
     window.resizable(False, False)
-    bg_img = Image.open(path_to_bg_img)
+    bg_img = Image.open(PATH_TO_BACKGROUND_IMG)
     bg_img = bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
     bg_img = ImageTk.PhotoImage(bg_img, master=window)
     img_label = Label(window, image=bg_img)
