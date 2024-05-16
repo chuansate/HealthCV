@@ -240,7 +240,8 @@ class KickAndCatchGame:
             self.__total_game_score -= 1
 
 
-def render_kick_and_catch_game_UI():
+def render_kick_and_catch_game_UI(uname, window):
+    window.destroy()
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -323,9 +324,13 @@ def render_kick_and_catch_game_UI():
                 game_object.set_game_over(True)
                 game_object.render_final_results(frame)
                 game_object.save_game_data(frame)
+                time.sleep(3)
+                break
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
-            break
+        # if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
+        #     break
+    cap.release()
+    cv2.destroyAllWindows()
+    from fitness_games_page import fitness_games_page
+    fitness_games_page(uname, None)
 
-
-render_kick_and_catch_game_UI()
