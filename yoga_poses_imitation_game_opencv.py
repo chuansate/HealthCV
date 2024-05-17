@@ -5,6 +5,8 @@ but the distance of the user from camera might vary. If the user is close to cam
 The new coordinates of the user can be broken down into x-components and y-components, they can be further normalized based on the x range and y range (refer to normalization in structured dataset).
 Link to common yoga poses: https://greatist.com/move/common-yoga-poses
 """
+from tkinter import messagebox
+
 import cv2
 import mediapipe as mp
 import time
@@ -98,7 +100,7 @@ class YogaPoseImitationGame:
         :param webcam_frame: ndarray, webcam frame
         :return:
         """
-        if type(frame) != np.ndarray:
+        if type(webcam_frame) != np.ndarray:
             raise TypeError("The webcam frame should be a numpy array!")
         if self.__current_yoga_pose_index < len(self.__yoga_poses_names_difficulties):
             sample_yoga_pose_img = cv2.imread(
@@ -259,20 +261,6 @@ class YogaPoseImitationGame:
     def get_current_yoga_pose_index(self):
         return self.__current_yoga_pose_index
 
-
-cap = cv2.VideoCapture(0)
-cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-# x and y refers to coordinates of top left corner of the window
-# x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
-
-mpHands = mp.solutions.hands
-hands = mpHands.Hands(False)  # modify `max_num_hands`
-mpDraw = mp.solutions.drawing_utils
-prevTime = 0
-curTime = 0
-
 # Information about the yoga poses
 YOGA_POSES_PATH = "yoga_poses_imitation_game_images"
 
@@ -299,63 +287,86 @@ startButtonImg = cv2.imread("icons/start_button2.png")
 startButtonImg_WIDTH = startButtonImg.shape[1]
 startButtonImg_HEIGHT = startButtonImg.shape[0]
 
-# Flag
-game_started = False
-game_object_created = False
 
-while True:
-    success, frame = cap.read()
-    if not success:
-        print("Failed to read frames!")
-        sys.exit()
-    # Flip the frame horizontally
-    frame = cv2.flip(frame, 1)
-    frame_height = frame.shape[0]
-    frame_width = frame.shape[1]
+def render_yoga_poses_imitation_game_UI(uname, window):
+    window.destroy()
+    cap = cv2.VideoCapture(0)
+    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-    curTime = time.time()
-    fps = 1 / (curTime - prevTime)
+    # x and y refers to coordinates of top left corner of the window
+    # x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
 
-    cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
-    if not game_started:
-        rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(rgbFrame)
-        startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
-                                  "start_but")
-        if results.multi_hand_landmarks:
-            for handLms in results.multi_hand_landmarks:
-                # don't pass HAND_CONNECTIONS if u just want the landmarks
-                mpDraw.draw_landmarks(frame, handLms)
-                index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
-                index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
+    mpHands = mp.solutions.hands
+    hands = mpHands.Hands(False)  # modify `max_num_hands`
+    mpDraw = mp.solutions.drawing_utils
+    prevTime = 0
+    curTime = 0
 
-                if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
-                    game_started = True
-    else:
-        if not game_object_created:
-            game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
-            game_object_created = True
+    # Flag
+    game_started = False
+    game_object_created = False
+    failed_to_turn_on_webcam = False
+
+    while True:
+        success, frame = cap.read()
+        if not success:
+            failed_to_turn_on_webcam = True
+            break
+        # Flip the frame horizontally
+        frame = cv2.flip(frame, 1)
+        frame_height = frame.shape[0]
+        frame_width = frame.shape[1]
+
+        curTime = time.time()
+        fps = 1 / (curTime - prevTime)
+
+        cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+        if not game_started:
+            rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(rgbFrame)
+            startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
+                                      "start_but")
+            if results.multi_hand_landmarks:
+                for handLms in results.multi_hand_landmarks:
+                    # don't pass HAND_CONNECTIONS if u just want the landmarks
+                    mpDraw.draw_landmarks(frame, handLms)
+                    index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
+                    index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
+
+                    if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
+                        game_started = True
         else:
-            cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                        cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 0, 255), 1)
-            cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
-                        cv2.FONT_HERSHEY_PLAIN, 2,
-                        (255, 0, 255), 2)
-            game_object.display_sample_yoga_pose(frame)
-            cur_similarity_score = game_object.evaluate_user_pose(frame)
-            if cur_similarity_score > game_object.get_similarity_threshold():
-                game_object.count_down(frame, curTime, prevTime)
+            if not game_object_created:
+                game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
+                game_object_created = True
             else:
-                game_object.set_hold_pose_time_elapsed(0)
-    prevTime = curTime
-    cv2.imshow('Frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
-        if game_started and game_object_created:
-            print("Game over!")
-            game_object.set_current_yoga_pose_index(
-                game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))
-            game_object.game_over(frame)
+                cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
+                cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
+                            cv2.FONT_HERSHEY_PLAIN, 2,
+                            (255, 0, 255), 2)
+                game_object.display_sample_yoga_pose(frame)
+                cur_similarity_score = game_object.evaluate_user_pose(frame)
+                if cur_similarity_score > game_object.get_similarity_threshold():
+                    game_object.count_down(frame, curTime, prevTime)
+                else:
+                    game_object.set_hold_pose_time_elapsed(0)
+        prevTime = curTime
+        cv2.imshow('Frame', frame)
+        if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
+            if game_started and game_object_created:
+                print("Game over!")
+                game_object.set_current_yoga_pose_index(
+                    game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))
+                game_object.game_over(frame)
+                time.sleep(3)
+                break
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
-        break
+    if failed_to_turn_on_webcam:
+        msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
+    cap.release()
+    cv2.destroyAllWindows()
+    from fitness_games_page import fitness_games_page
+    fitness_games_page(uname, None)

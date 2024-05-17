@@ -45,7 +45,7 @@ def home_page(uname):
     guides_button.pack(pady=10, ipadx=20, ipady=10)
 
     workout_plan_button = tk.Button(window, text="Workout Plan", font=button_font, bg=button_bg, fg=button_fg,
-                                    activebackground=button_active_bg, command=lambda: workout_plan_page(uname))
+                                    activebackground=button_active_bg, command=lambda: workout_plan_page(uname, window))
     workout_plan_button.pack(pady=10, ipadx=20, ipady=10)
     logout_button = tk.Button(window, text="Logout", command=lambda: logout(window))
     logout_button.place(x=WINDOW_WIDTH-100, y=WINDOW_HEIGHT-50)

@@ -98,15 +98,14 @@ curTime = 0
 TOTAL_COUNT_PUSHUP = 0
 FONT_SCALE = 1.2
 ready_time_elapsed = 0
-
+failed_to_turn_on_webcam = False
 with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
     while cap.isOpened():
         success, frame = cap.read()
         if not success:
             print("Failed to read frames from webcam, please try again!")
-            # If loading a video, use 'break' instead of 'continue'.
-            import sys
-            sys.exit()
+            failed_to_turn_on_webcam = True
+            break
 
         # Flip the frame horizontally
         frame = cv2.flip(frame, 1)

@@ -10,7 +10,7 @@ import time
 import sys
 import numpy as np
 import math
-
+from tkinter import ttk, messagebox
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
     frame_width = frame.shape[1]
@@ -158,7 +158,10 @@ class CountingBicepsCurl:
         self.__left_arm_status = 0
         self.__right_arm_status = 0
 
-def render_counting_biceps_curl_UI():
+
+def render_counting_biceps_curl_UI(uname, window):
+    from workout_plan_page import workout_plan_page
+    window.destroy()
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -167,7 +170,7 @@ def render_counting_biceps_curl_UI():
     # Flag
     game_started = False
     counting_biceps_curl_object_created = False
-
+    failed_to_turn_on_webcam = False
     # Messages to display on screen
     # `fs` means "font scale"
     # `th` means "thickness"
@@ -184,8 +187,8 @@ def render_counting_biceps_curl_UI():
     while True:
         success, frame = cap.read()
         if not success:
-            print("Failed to read frames!")
-            sys.exit()
+            failed_to_turn_on_webcam = True
+            break
         # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
         frame_height = frame.shape[0]
@@ -200,6 +203,9 @@ def render_counting_biceps_curl_UI():
             cbc_obj = CountingBicepsCurl()
             counting_biceps_curl_object_created = True
         else:
+            cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
             pose_results = cbc_obj.detect_pose_landmarks(frame)
             if pose_results.pose_landmarks:
                 cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 125),
@@ -249,9 +255,14 @@ def render_counting_biceps_curl_UI():
 
         cv2.imshow('Frame', frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord('e'):
+            msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break
+
+    if failed_to_turn_on_webcam:
+        msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
+
+    cap.release()
     cv2.destroyAllWindows()
+    workout_plan_page(uname, None)
 
-
-render_counting_biceps_curl_UI()

@@ -4,6 +4,8 @@
  while the objects with hand icon means the user has to hit it using hand.
 """
 import random
+from tkinter import messagebox
+
 import cv2
 import mediapipe as mp
 import time
@@ -263,12 +265,12 @@ def render_kick_and_catch_game_UI(uname, window):
     # Flag
     game_started = False
     game_object_created = False
-
+    failed_to_turn_on_webcam = False
     while True:
         success, frame = cap.read()
         if not success:
-            print("Failed to read frames!")
-            sys.exit()
+            failed_to_turn_on_webcam = True
+            break
         # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
         frame_height = frame.shape[0]
@@ -329,6 +331,9 @@ def render_kick_and_catch_game_UI(uname, window):
 
         # if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
         #     break
+
+    if failed_to_turn_on_webcam:
+        msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
     cap.release()
     cv2.destroyAllWindows()
     from fitness_games_page import fitness_games_page

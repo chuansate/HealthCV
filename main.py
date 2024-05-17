@@ -91,7 +91,7 @@ def login_page():
     login_but = ttk.Button(tab1, text="Login",
                            command=lambda: validate_login_credentials(window, uname_tf.get(), pwd_tf.get()))
     login_but.grid(row=2, column=0, pady=5, columnspan=2)
-    notebook.add(tab1, text="Login tab")
+    notebook.add(tab1, text="Login")
     # Registration tab
     tab2 = ttk.Frame(notebook)
     new_uname_label = ttk.Label(tab2, text="New Username: ")
@@ -104,7 +104,7 @@ def login_page():
     new_pwd_tf.grid(row=1, column=1, pady=5)
     register_but = ttk.Button(tab2, text="Register", command=lambda: validate_register_credentials(new_uname_tf.get(), new_pwd_tf.get()))
     register_but.grid(row=2, column=0, pady=5, columnspan=2)
-    notebook.add(tab2, text="Registration tab")
+    notebook.add(tab2, text="Registration")
     notebook.pack()
     window.mainloop()
 
