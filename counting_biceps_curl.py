@@ -12,6 +12,7 @@ import numpy as np
 import math
 from tkinter import ttk, messagebox
 
+
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
     frame_width = frame.shape[1]
     text_width = cv2.getTextSize(text, font, text_fs, text_thickness)[0][0]

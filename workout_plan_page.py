@@ -18,6 +18,7 @@ def go_back(uname, window):
 
 def workout_plan_page(uname, window):
     from counting_biceps_curl import render_counting_biceps_curl_UI
+    from counting_push_up import render_counting_push_up_UI
     if window is not None:
         # window could be None happen when the user is from push-up/biceps curl to fitness_games_page
         window.destroy()
@@ -47,7 +48,7 @@ def workout_plan_page(uname, window):
     push_up_img = ImageTk.PhotoImage(push_up_img)
     push_up_button = tk.Button(window, text="Push-up", font=button_font, bg=button_bg, fg=button_fg,
                                   activebackground=button_active_bg, image=push_up_img, compound=RIGHT,
-                                  command=lambda: render_counting_biceps_curl_UI(uname, window))
+                                  command=lambda: render_counting_push_up_UI(uname, window))
     push_up_button.pack(pady=10, ipadx=20, ipady=10)
 
     biceps_curl_img = Image.open(PATH_TO_BICEPS_CURL_ICON)
