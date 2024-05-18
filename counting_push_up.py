@@ -29,47 +29,12 @@ class CountingPushUp:
         mp_pose.PoseLandmark.RIGHT_ELBOW,
         mp_pose.PoseLandmark.LEFT_WRIST,
         mp_pose.PoseLandmark.RIGHT_WRIST,
-        mp_pose.PoseLandmark.LEFT_PINKY,
-        mp_pose.PoseLandmark.RIGHT_PINKY,
-        mp_pose.PoseLandmark.LEFT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_INDEX,
-        mp_pose.PoseLandmark.LEFT_THUMB,
-        mp_pose.PoseLandmark.RIGHT_THUMB,
         mp_pose.PoseLandmark.LEFT_HIP,
         mp_pose.PoseLandmark.RIGHT_HIP,
         mp_pose.PoseLandmark.LEFT_KNEE,
         mp_pose.PoseLandmark.RIGHT_KNEE,
         mp_pose.PoseLandmark.LEFT_ANKLE,
-        mp_pose.PoseLandmark.RIGHT_ANKLE,
-        mp_pose.PoseLandmark.LEFT_HEEL,
-        mp_pose.PoseLandmark.RIGHT_HEEL,
-        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
-    ]
-
-    feature_names = [
-        "LEFT_SHOULDER",
-        "RIGHT_SHOULDER",
-        "LEFT_ELBOW",
-        "RIGHT_ELBOW",
-        "LEFT_WRIST",
-        "RIGHT_WRIST",
-        "LEFT_PINKY",
-        "RIGHT_PINKY",
-        "LEFT_INDEX",
-        "RIGHT_INDEX",
-        "LEFT_THUMB",
-        "RIGHT_THUMB",
-        "LEFT_HIP",
-        "RIGHT_HIP",
-        "LEFT_KNEE",
-        "RIGHT_KNEE",
-        "LEFT_ANKLE",
-        "RIGHT_ANKLE",
-        "LEFT_HEEL",
-        "RIGHT_HEEL",
-        "LEFT_FOOT_INDEX",
-        "RIGHT_FOOT_INDEX"
+        mp_pose.PoseLandmark.RIGHT_ANKLE
     ]
 
     classes = {
@@ -90,19 +55,8 @@ class CountingPushUp:
         self.__user_in_ready_pose = False
         self.__ready_pose_hold_elapsed = 0
         self.__ready_pose_hold_duration_threshold = 3
+        self.__grad_x_threshold = 10
 
-    def normalize_pose_landmarks(self, pose_landmarks_dict):
-        """Calculates pose center as point between hips."""
-        left_hip = pose_landmarks_dict['LEFT_HIP']
-        right_hip = pose_landmarks_dict['RIGHT_HIP']
-        center = []
-        for i in range(len(left_hip)):
-            center.append((left_hip[i] + right_hip[i]) * 0.5)
-        for key, coordinates in pose_landmarks_dict.items():
-            for i in range(len(coordinates)):
-                coordinates[i] -= center[i]
-            pose_landmarks_dict[key] = coordinates
-        return pose_landmarks_dict
 
     def isReadyToPushUp(self, pose_landmarks, prevTime, curTime, frame):
         """
@@ -113,15 +67,26 @@ class CountingPushUp:
         shoulder_y < hip_y AND (maybe no need to care about the y-coor first becoz push-up DOWN might not obey this rule)
         hip_y < knee_y AND
         knee_y < ankle_y AND
-        the correlation between the 3 points (shoulder, hip, and knee) is high enuf
+        the correlation between the 4 points (shoulder, hip, knee, and ankle) is high enuf
         """
-        prev_user_in_ready_pose = self.__user_in_ready_pose
         # print(curTime, prevTime)
         self.__ready_pose_hold_elapsed += (curTime - prevTime)
         # print("elapsed = ", self.__ready_pose_hold_elapsed)
-        if self.__user_in_ready_pose:
+        # Since the frame has been flipped initially, so to detect the left shoulder, we have to extract the right shoulder
+        left_shoulder_x = pose_landmarks[CountingPushUp.features[1]].x
+        left_hip_x = pose_landmarks[CountingPushUp.features[7]].x
+        left_knee_x = pose_landmarks[CountingPushUp.features[9]].x
+        left_ankle_x = pose_landmarks[CountingPushUp.features[11]].x
+        left_shoulder_y = pose_landmarks[CountingPushUp.features[1]].y
+        left_hip_y = pose_landmarks[CountingPushUp.features[7]].y
+        left_knee_y = pose_landmarks[CountingPushUp.features[9]].y
+        left_ankle_y = pose_landmarks[CountingPushUp.features[11]].y
+        grad_x = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
+        if left_shoulder_x > left_hip_x and left_hip_x > left_knee_x and left_knee_x > left_ankle_x and grad_x < self.__grad_x_threshold:
+            self.__user_in_ready_pose = True
             return True
         else:
+            self.__user_in_ready_pose = False
             return False
 
     def get_ready_pose_hold_elapsed(self):
@@ -153,6 +118,7 @@ class CountingPushUp:
         return self.__push_up_count
 
     def update_counter(self, frame_features):
+        pass
         # if self.__user_status == 0 and y_pred == 1:
         #     self.__user_status = y_pred
         #     self.__push_up_count += 1
@@ -213,7 +179,7 @@ def render_counting_push_up_UI(uname, window):
                 if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime, frame):
                     if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
                         cpu_obj.set_user_status(1)  # Set it to push-up UP
-                        cpu_obj.update_counter(frame_features)
+                        # cpu_obj.update_counter(frame_features)
                     else:
                         center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
                             int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
