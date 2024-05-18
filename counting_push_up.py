@@ -21,8 +21,6 @@ class CountingPushUp:
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
-    pushup_up_down_classifier = keras.models.load_model("push_up_classification_100_test_acc.keras")
-    pushup_ready_pose_classifier = keras.models.load_model("push_up_ready_poses_classification_v2.keras")
     # the features exclude the facial landmarks, becoz those are not helpful at determining push-up
     features = [
         mp_pose.PoseLandmark.LEFT_SHOULDER,
@@ -106,30 +104,31 @@ class CountingPushUp:
             pose_landmarks_dict[key] = coordinates
         return pose_landmarks_dict
 
-    def isReadyToPushUp(self, frame_features, prevTime, curTime, frame):
-        y_pred = CountingPushUp.pushup_ready_pose_classifier.predict(tf.expand_dims(frame_features, axis=0), verbose=0)
+    def isReadyToPushUp(self, pose_landmarks, prevTime, curTime, frame):
+        """
+        The logic to determine a user is in ready pose:
+        shoulder_x > hip_x AND
+        hip_x > knee_x AND
+        knee_x > ankle_x AND
+        shoulder_y < hip_y AND (maybe no need to care about the y-coor first becoz push-up DOWN might not obey this rule)
+        hip_y < knee_y AND
+        knee_y < ankle_y AND
+        the correlation between the 3 points (shoulder, hip, and knee) is high enuf
+        """
         prev_user_in_ready_pose = self.__user_in_ready_pose
-        self.__user_in_ready_pose = True if y_pred[0] >= 0.5 else False
         # print(curTime, prevTime)
         self.__ready_pose_hold_elapsed += (curTime - prevTime)
         # print("elapsed = ", self.__ready_pose_hold_elapsed)
-        if self.__user_in_ready_pose and self.__ready_pose_hold_elapsed >= self.__ready_pose_hold_duration_threshold:
-            self.__user_status = 1  # Set it to push-up UP
+        if self.__user_in_ready_pose:
             return True
-        elif self.__user_in_ready_pose and self.__ready_pose_hold_elapsed < self.__ready_pose_hold_duration_threshold:
-            center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(int(round(self.__ready_pose_hold_duration_threshold - self.__ready_pose_hold_elapsed, 0))),
-                                            1, 1, cv2.FONT_HERSHEY_PLAIN)
-            return False
-        elif prev_user_in_ready_pose and not self.__user_in_ready_pose:  # the user fell down
-            # Ask the user to get into the ready pose of biceps curl
-            self.reset_ready_pose_hold_elapsed()
-            self.reset_user_status()
-            center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE, CountingPushUp.GET_INTO_READY_POSE_fs,
-                                            CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-            center_opencv_text_horizontally(frame, 125, CountingPushUp.FACE_CAMERA, CountingPushUp.FACE_CAMERA_fs,
-                                            CountingPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
+        else:
             return False
 
+    def get_ready_pose_hold_elapsed(self):
+        return self.__ready_pose_hold_elapsed
+
+    def get_ready_pose_hold_duration_threshold(self):
+        return self.__ready_pose_hold_duration_threshold
 
     def detect_pose_landmarks(self, frame):
         # To improve performance, optionally mark the image as not writeable to
@@ -154,16 +153,17 @@ class CountingPushUp:
         return self.__push_up_count
 
     def update_counter(self, frame_features):
-        y_pred = CountingPushUp.pushup_up_down_classifier.predict(tf.expand_dims(frame_features, axis=0), verbose=0)
-        y_pred = 1 if y_pred[0] >= 0.5 else 0
-        if self.__user_status == 0 and y_pred == 1:
-            self.__user_status = y_pred
-            self.__push_up_count += 1
-        elif self.__user_status == 1 and y_pred == 0:
-            self.__user_status = y_pred
+        # if self.__user_status == 0 and y_pred == 1:
+        #     self.__user_status = y_pred
+        #     self.__push_up_count += 1
+        # elif self.__user_status == 1 and y_pred == 0:
+        #     self.__user_status = y_pred
 
     def get_user_status(self):
         return self.__user_status
+
+    def set_user_status(self, status):
+        self.__user_status = status
 
 
 def render_counting_push_up_UI(uname, window):
@@ -173,7 +173,6 @@ def render_counting_push_up_UI(uname, window):
     cv2.setWindowProperty("Counting push-up", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     prevTime = 0
     curTime = 0
-    TOTAL_COUNT_PUSHUP = 0
     FONT_SCALE = 1.2
     # Flags
     failed_to_turn_on_webcam = False
@@ -211,22 +210,14 @@ def render_counting_push_up_UI(uname, window):
                         cv2.FONT_HERSHEY_PLAIN, 1,
                         (255, 0, 255), 1)
             if pose_results.pose_landmarks:
-                # extract the x-, y-, and z-coordinates of the 22 body landmarks as features from the frame
-                frame_features = []
-                frame_features_dict = {}
-                for index, ft in enumerate(cpu_obj.features):
-                    landmark_coordinates = pose_results.pose_landmarks.landmark[ft]
-                    frame_features_dict[cpu_obj.feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y,
-                                                                 landmark_coordinates.z]
-                frame_features_dict = cpu_obj.normalize_pose_landmarks(frame_features_dict)
-
-                for normalized_coordinates in frame_features_dict.values():
-                    for normalized_coor in normalized_coordinates:
-                        frame_features.append(normalized_coor)
-
-                frame_features = np.array(frame_features)
-                if cpu_obj.isReadyToPushUp(frame_features, prevTime, curTime, frame):
-                    cpu_obj.update_counter(frame_features)
+                if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime, frame):
+                    if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
+                        cpu_obj.set_user_status(1)  # Set it to push-up UP
+                        cpu_obj.update_counter(frame_features)
+                    else:
+                        center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
+                            int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
+                                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
 
                     if cpu_obj.get_user_status() == 0:
                         cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50),
@@ -237,6 +228,8 @@ def render_counting_push_up_UI(uname, window):
                                     cv2.FONT_HERSHEY_PLAIN, 1,
                                     (255, 0, 255), 1)
                 else:
+                    cpu_obj.reset_ready_pose_hold_elapsed()
+                    cpu_obj.reset_user_status()
                     center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE,
                                                     CountingPushUp.GET_INTO_READY_POSE_fs,
                                                     CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)

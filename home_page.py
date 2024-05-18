@@ -41,7 +41,7 @@ def home_page(uname):
     fitness_games_button.pack(pady=10, ipadx=20, ipady=10)
 
     guides_button = tk.Button(window, text="Guides", font=button_font, bg=button_bg, fg=button_fg,
-                              activebackground=button_active_bg, command=lambda: guides_page(uname))
+                              activebackground=button_active_bg, command=lambda: guides_page(uname, window))
     guides_button.pack(pady=10, ipadx=20, ipady=10)
 
     workout_plan_button = tk.Button(window, text="Workout Plan", font=button_font, bg=button_bg, fg=button_fg,
