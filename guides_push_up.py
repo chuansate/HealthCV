@@ -64,7 +64,7 @@ def guides_push_up_page(uname, window):
 
             mp_drawing.draw_landmarks(frame, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         else:
-
+            pass
 
         cv2.putText(frame, f'Push-ups: {pushup_counter}', (10, 60), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1,
                     cv2.LINE_AA)
