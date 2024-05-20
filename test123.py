@@ -1,19 +1,46 @@
-import pymongo
+# Import the required module for text
+# to speech conversion
+from gtts import gTTS
 
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+# This module is imported so that we can
+# play the converted audio
+#
+# The text that you want to convert to audio
+mytext = 'twenty'
+path = "./audio/20.mp3"
+# Language in which you want to convert
+language = 'en'
 
-mydb = myclient["HealthCV"]
+# Passing the text and language to the engine,
+# here we have marked slow=False. Which tells
+# the module that the converted audio should
+# have a high speed
+myobj = gTTS(text=mytext, lang=language, slow=False)
 
-dblist = myclient.list_database_names()
-print("Existing databases = ", dblist)
-print("Existing collections in HealthCV database = ", mydb.list_collection_names())
-if "HealthCV" in dblist:
-    print("The database exists.")
+# Saving the converted audio in a mp3 file named
+# welcome
 
-users_collection = mydb["users"]
+myobj.save(path)
+import playsound
+playsound.playsound(path)
 
-for rec in users_collection.find():
-    print(rec)
+##############
+# import pymongo
+#
+# myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+#
+# mydb = myclient["HealthCV"]
+#
+# dblist = myclient.list_database_names()
+# print("Existing databases = ", dblist)
+# print("Existing collections in HealthCV database = ", mydb.list_collection_names())
+# if "HealthCV" in dblist:
+#     print("The database exists.")
+#
+# users_collection = mydb["users"]
+#
+# for rec in users_collection.find():
+#     print(rec)
 
 # record = { "uname": "Lim", "pwd": "Lim123" }
 #

@@ -1,10 +1,9 @@
 from tkinter import messagebox
-
+import playsound
 import cv2
 import mediapipe as mp
 import time
-from tensorflow import keras
-import tensorflow as tf
+import threading
 import numpy as np
 import math
 
@@ -64,6 +63,7 @@ class CountingPushUp:
     FACE_CAMERA = "Face the camera"
     FACE_CAMERA_fs = 1
     FACE_CAMERA_th = 1
+    path_to_audios = "./audio/"
 
     def __init__(self):
         self.__push_up_count = 0
@@ -225,11 +225,17 @@ class CountingPushUp:
         self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
         if self.__left_elbow_angle <= self.__push_up_DOWN_angle_threshold and self.__user_status == 1:
             self.__user_status = 0
-            print("Going DOWN")
         elif self.__left_elbow_angle >= self.__push_up_UP_angle_threshold and self.__user_status == 0:
             self.__user_status = 1
             self.__push_up_count += 1
-            print("Going UP")
+            thread = threading.Thread(target=self.play_audio_for_counter)
+            thread.start()
+
+    def play_audio_for_counter(self):
+        try:
+            playsound.playsound(CountingPushUp.path_to_audios + str(self.__push_up_count) + ".mp3")
+        except:
+            print("Probably the number of counter exceeds 20!")
 
     def get_user_status(self):
         return self.__user_status

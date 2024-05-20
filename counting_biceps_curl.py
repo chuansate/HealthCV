@@ -11,6 +11,8 @@ import sys
 import numpy as np
 import math
 from tkinter import ttk, messagebox
+import threading
+import playsound
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -48,6 +50,8 @@ class CountingBicepsCurl:
         "LEFT_HIP",
         "RIGHT_HIP"
     ]
+
+    path_to_audios = "./audio/"
 
     def __init__(self):
         self.__left_biceps_curl_count = 0
@@ -105,12 +109,28 @@ class CountingBicepsCurl:
         elif self.__left_arm_status == 1 and self.__left_elbow_angle >= self.__ready_pose_ankle_angle:
             self.__left_arm_status = 0
             self.__left_biceps_curl_count += 1
+            thread = threading.Thread(target=self.play_audio_for_counter_left_arm)
+            thread.start()
 
         if self.__right_arm_status == 0 and self.__right_elbow_angle <= self.__lift_angle:
             self.__right_arm_status = 1
         elif self.__right_arm_status == 1 and self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
             self.__right_arm_status = 0
             self.__right_biceps_curl_count += 1
+            thread = threading.Thread(target=self.play_audio_for_counter_right_arm)
+            thread.start()
+
+    def play_audio_for_counter_left_arm(self):
+        try:
+            playsound.playsound(CountingBicepsCurl.path_to_audios + str(self.__left_biceps_curl_count) + ".mp3")
+        except:
+            print("Probably the number of counter exceeds 20!")
+
+    def play_audio_for_counter_right_arm(self):
+        try:
+            playsound.playsound(CountingBicepsCurl.path_to_audios + str(self.__right_biceps_curl_count) + ".mp3")
+        except:
+            print("Probably the number of counter exceeds 20!")
 
     def get_left_biceps_curl_count(self):
         return self.__left_biceps_curl_count
