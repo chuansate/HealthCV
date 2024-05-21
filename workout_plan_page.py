@@ -10,6 +10,9 @@ from PIL import Image, ImageTk
 from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PUSH_UP_ICON, PATH_TO_BICEPS_CURL_ICON
 
 
+
+
+
 def go_back(uname, window):
     from home_page import home_page
     window.destroy()
@@ -35,9 +38,18 @@ def validate_set_rep_counts(workout_plan_window, setting_set_rep_window, set_val
         render_counting_biceps_curl_UI(uname, setting_set_rep_window)
 
 
-def setting_set_rep_counts_page(uname, workout_plan_window):
-    root = Tk()
-    root.title("Workout Set & Rep Counter")
+def setting_set_rep_counts_page(uname, workout_plan_window, but1, but2, but3):
+    but1["state"] = "disabled"
+    but2["state"] = "disabled"
+    but3["state"] = "disabled"
+    def on_destroy(event):
+        if event.widget != root:
+            return
+        but1["state"] = "normal"
+        but2["state"] = "normal"
+        but3["state"] = "normal"
+    root = Toplevel()
+    root.title("Counter")
     WINDOW_WIDTH = 250
     WINDOW_HEIGHT = 150
     root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
@@ -59,7 +71,8 @@ def setting_set_rep_counts_page(uname, workout_plan_window):
     # Button
     start_button = Button(root, text="Start Workout", command=lambda: validate_set_rep_counts(workout_plan_window, root, set_entry.get(), rep_entry.get(), uname))
     start_button.grid(row=2, column=0, pady=5, columnspan=2)
-
+    root.wm_attributes("-topmost", True)
+    root.bind("<Destroy>", on_destroy)
     root.mainloop()
 
 
@@ -94,7 +107,7 @@ def workout_plan_page(uname, window):
     push_up_img = ImageTk.PhotoImage(push_up_img)
     push_up_button = tk.Button(window, text="Push-up", font=button_font, bg=button_bg, fg=button_fg,
                                   activebackground=button_active_bg, image=push_up_img, compound=RIGHT,
-                                  command=lambda: setting_set_rep_counts_page(uname, window))
+                                  command=lambda: setting_set_rep_counts_page(uname, window, push_up_button, biceps_curl_button, logout_button))
     push_up_button.pack(pady=10, ipadx=20, ipady=10)
 
     biceps_curl_img = Image.open(PATH_TO_BICEPS_CURL_ICON)
