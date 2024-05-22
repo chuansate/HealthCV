@@ -10,16 +10,14 @@ from PIL import Image, ImageTk
 from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PUSH_UP_ICON, PATH_TO_BICEPS_CURL_ICON
 
 
-
-
-
 def go_back(uname, window):
     from home_page import home_page
     window.destroy()
     home_page(uname)
 
 
-def validate_set_rep_counts(workout_plan_window, setting_set_rep_window, set_value, rep_value, uname):
+def validate_set_rep_counts(workout_plan_window, setting_set_rep_window, set_value, rep_value, uname, exercise):
+    from counting_push_up import render_counting_push_up_UI
     from counting_biceps_curl import render_counting_biceps_curl_UI
     invalid_inputs = False
     try:
@@ -34,11 +32,16 @@ def validate_set_rep_counts(workout_plan_window, setting_set_rep_window, set_val
     if invalid_inputs:
         msg = messagebox.showinfo("Warning", "Invalid inputs, try again.")
     else:
-        workout_plan_window.destroy()
-        render_counting_biceps_curl_UI(uname, setting_set_rep_window)
+        setting_set_rep_window.destroy()
+        if exercise == "push-up":
+            render_counting_push_up_UI(uname, workout_plan_window, set_count, rep_count)
+        elif exercise == "biceps curl":
+            render_counting_biceps_curl_UI(uname, workout_plan_window, set_count, rep_count)
+        else:
+            raise ValueError("Check the type of exercise you have passed as argument!")
 
 
-def setting_set_rep_counts_page(uname, workout_plan_window, but1, but2, but3):
+def setting_set_rep_counts_page(uname, workout_plan_window, but1, but2, but3, exercise):
     but1["state"] = "disabled"
     but2["state"] = "disabled"
     but3["state"] = "disabled"
@@ -50,9 +53,9 @@ def setting_set_rep_counts_page(uname, workout_plan_window, but1, but2, but3):
         but3["state"] = "normal"
     root = Toplevel()
     root.title("Counter")
-    WINDOW_WIDTH = 250
-    WINDOW_HEIGHT = 150
-    root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+    # WINDOW_WIDTH = 350
+    # WINDOW_HEIGHT = 150
+    # root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     root.resizable(False, False)
     # Labels
     set_label = Label(root, text="Sets (Max 6):")
@@ -69,8 +72,12 @@ def setting_set_rep_counts_page(uname, workout_plan_window, but1, but2, but3):
     rep_entry.grid(row=1, column=1, pady=5)
 
     # Button
-    start_button = Button(root, text="Start Workout", command=lambda: validate_set_rep_counts(workout_plan_window, root, set_entry.get(), rep_entry.get(), uname))
+    start_button = Button(root, text="Start Workout", command=lambda: validate_set_rep_counts(workout_plan_window, root, set_entry.get(), rep_entry.get(), uname, exercise))
     start_button.grid(row=2, column=0, pady=5, columnspan=2)
+
+    warning_label = Label(root, text="Note: If you end the workout without completing it, the progress will be lost!")
+    warning_label.grid(row=3, column=0, pady=5, columnspan=2)
+
     root.wm_attributes("-topmost", True)
     root.bind("<Destroy>", on_destroy)
     root.mainloop()
@@ -107,7 +114,7 @@ def workout_plan_page(uname, window):
     push_up_img = ImageTk.PhotoImage(push_up_img)
     push_up_button = tk.Button(window, text="Push-up", font=button_font, bg=button_bg, fg=button_fg,
                                   activebackground=button_active_bg, image=push_up_img, compound=RIGHT,
-                                  command=lambda: setting_set_rep_counts_page(uname, window, push_up_button, biceps_curl_button, logout_button))
+                                  command=lambda: setting_set_rep_counts_page(uname, window, push_up_button, biceps_curl_button, logout_button, "push-up"))
     push_up_button.pack(pady=10, ipadx=20, ipady=10)
 
     biceps_curl_img = Image.open(PATH_TO_BICEPS_CURL_ICON)
@@ -115,7 +122,7 @@ def workout_plan_page(uname, window):
     biceps_curl_img = ImageTk.PhotoImage(biceps_curl_img)
     biceps_curl_button = tk.Button(window, text="Biceps curl", font=button_font, bg=button_bg, fg=button_fg,
                                       activebackground=button_active_bg, image=biceps_curl_img, compound=RIGHT,
-                                      command=lambda: render_counting_biceps_curl_UI(uname, window))
+                                      command=lambda: setting_set_rep_counts_page(uname, window, push_up_button, biceps_curl_button, logout_button, "biceps curl"))
     biceps_curl_button.pack(pady=10, ipadx=20, ipady=10)
 
     logout_button = tk.Button(window, text="Go back", command=lambda: go_back(uname, window))

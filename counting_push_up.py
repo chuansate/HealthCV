@@ -172,7 +172,6 @@ class CountingPushUp:
         self.__ready_pose_hold_elapsed = 0
 
     def reset_user_status(self):
-        print("RESET USER STATUS TO UP!")
         self.__user_status = 1
 
     def get_push_up_count(self):
@@ -247,7 +246,7 @@ class CountingPushUp:
         return self.__left_elbow_angle
 
 
-def render_counting_push_up_UI(uname, window):
+def render_counting_push_up_UI(uname, window, set_count, rep_count):
     window.destroy()
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Counting push-up", cv2.WINDOW_NORMAL)
