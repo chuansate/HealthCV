@@ -1,6 +1,9 @@
+gTTS==2.5.1
 mediapipe==0.10.8
 numpy==1.24.3
 opencv_contrib_python==4.8.1.78
 opencv_python==4.8.1.78
+playsound==1.2.2
+pymongo==4.7.2
 tensorflow==2.13.1
 tensorflow_intel==2.13.1
