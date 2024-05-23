@@ -7,7 +7,6 @@ import threading
 import numpy as np
 import math
 
-
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
     frame_width = frame.shape[1]
     text_width = cv2.getTextSize(text, font, text_fs, text_thickness)[0][0]
@@ -65,7 +64,10 @@ class CountingPushUp:
     FACE_CAMERA_th = 1
     path_to_audios = "./audio/"
 
-    def __init__(self):
+    def __init__(self, set_count, rep_count):
+        self.__set_count = set_count
+        self.__rep_count = rep_count
+        self.__current_set_count = 1
         self.__push_up_count = 0
         self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
@@ -76,6 +78,8 @@ class CountingPushUp:
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
         self.__push_up_UP_angle_threshold = 160
+        self.__workout_over = False
+
 
     # OLD version, this method only works if the webcam is directly seeing the side of the user
     # def isReadyToPushUp(self, pose_landmarks, prevTime, curTime, W, H):
@@ -222,13 +226,19 @@ class CountingPushUp:
         left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
         left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
         self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
-        if self.__left_elbow_angle <= self.__push_up_DOWN_angle_threshold and self.__user_status == 1:
+        if self.__left_elbow_angle <= self.__push_up_DOWN_angle_threshold and self.__user_status == 1 and self.__push_up_count < self.__rep_count:
             self.__user_status = 0
-        elif self.__left_elbow_angle >= self.__push_up_UP_angle_threshold and self.__user_status == 0:
+        elif self.__left_elbow_angle >= self.__push_up_UP_angle_threshold and self.__user_status == 0 and self.__push_up_count < self.__rep_count:
             self.__user_status = 1
             self.__push_up_count += 1
             thread = threading.Thread(target=self.play_audio_for_counter)
             thread.start()
+
+        if self.__current_set_count < self.__set_count and self.__push_up_count == self.__rep_count:
+            self.__current_set_count += 1
+            self.__push_up_count = 0
+        elif self.__current_set_count == self.__set_count and self.__push_up_count == self.__rep_count:
+            self.__workout_over = True
 
     def play_audio_for_counter(self):
         try:
@@ -245,6 +255,25 @@ class CountingPushUp:
     def get_left_elbow_angle(self):
         return self.__left_elbow_angle
 
+    def save_data(self, frame):
+        WORKOUT_IS_OVER = "Saving data..."
+        WORKOUT_IS_OVER_fs = 1
+        WORKOUT_IS_OVER_th = 1
+        center_opencv_text_horizontally(frame, 100, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
+                                        WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
+
+    def workout_is_over(self):
+        return self.__workout_over
+
+    def get_set_count(self):
+        return self.__set_count
+
+    def get_rep_count(self):
+        return self.__rep_count
+
+    def get_current_set_count(self):
+        return self.__current_set_count
+
 
 def render_counting_push_up_UI(uname, window, set_count, rep_count):
     window.destroy()
@@ -254,6 +283,8 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     prevTime = 0
     curTime = 0
     FONT_SCALE = 1.2
+    workout_over_time_elapsed = 0
+
     # Flags
     failed_to_turn_on_webcam = False
 
@@ -263,8 +294,11 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     USER_NOT_EXIST = "Failed to detect user!"
     USER_NOT_EXIST_fs = 1
     USER_NOT_EXIST_th = 1
+    WORKOUT_IS_OVER = "Workout is over, this window will close in 5 seconds!"
+    WORKOUT_IS_OVER_fs = 1
+    WORKOUT_IS_OVER_th = 1
 
-    cpu_obj = CountingPushUp()
+    cpu_obj = CountingPushUp(set_count, rep_count)
     while True:
         success, frame = cap.read()
         if not success:
@@ -279,48 +313,64 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
         pose_results = cpu_obj.detect_pose_landmarks(frame)
         # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
-        cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                    cv2.FONT_HERSHEY_PLAIN, 1,
-                    (255, 0, 255), 1)
-        cv2.putText(frame, "Count: " + str(cpu_obj.get_push_up_count()), (50, 75),
-                    cv2.FONT_HERSHEY_PLAIN, 1,
-                    (255, 0, 255), 1)
-        if pose_results.pose_landmarks:
-            if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
-                if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
-                    # cpu_obj.set_user_status(1)  # Set it to push-up UP
-                    cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
-                else:
-                    center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
-                        int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
-                                                    1, 1, cv2.FONT_HERSHEY_PLAIN)
-                cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-                if cpu_obj.get_user_status() == 0:
-                    cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-                else:
-                    cv2.putText(frame, "Push-up UP", (frame_width - 150, 50),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-            else:
-                # cpu_obj.reset_ready_pose_hold_elapsed()
-                # cpu_obj.reset_user_status()
-                center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE,
-                                                CountingPushUp.GET_INTO_READY_POSE_fs,
-                                                CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-                center_opencv_text_horizontally(frame, 125, CountingPushUp.FACE_CAMERA,
-                                                CountingPushUp.FACE_CAMERA_fs,
-                                                CountingPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
-
-        else:
-            # Fails to detect the user
-            center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
-                                            USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
-            # cpu_obj.reset_user_status()
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 40), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
+
+        if not cpu_obj.workout_is_over():
+            cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
+            cv2.putText(frame, "Set : " + str(cpu_obj.get_current_set_count()) + "/" + str(
+                cpu_obj.get_set_count()), (50, 50),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
+            cv2.putText(frame, "Count: " + str(cpu_obj.get_push_up_count()) + "/" + str(cpu_obj.get_rep_count()), (50, 75),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
+            if pose_results.pose_landmarks:
+                if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
+                    if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
+                        # cpu_obj.set_user_status(1)  # Set it to push-up UP
+                        cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
+
+                    else:
+                        center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
+                            int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
+                                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+                    cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
+                    if cpu_obj.get_user_status() == 0:
+                        cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+                    else:
+                        cv2.putText(frame, "Push-up UP", (frame_width - 150, 50),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 0, 255), 1)
+                else:
+                    # cpu_obj.reset_ready_pose_hold_elapsed()
+                    # cpu_obj.reset_user_status()
+                    center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE,
+                                                    CountingPushUp.GET_INTO_READY_POSE_fs,
+                                                    CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+                    center_opencv_text_horizontally(frame, 125, CountingPushUp.FACE_CAMERA,
+                                                    CountingPushUp.FACE_CAMERA_fs,
+                                                    CountingPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
+
+            else:
+                # Fails to detect the user
+                center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
+                                                USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
+                # cpu_obj.reset_user_status()
+        else:
+            workout_over_time_elapsed += (curTime - prevTime)
+            if workout_over_time_elapsed < 5:
+                center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
+                                                WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
+                cpu_obj.save_data(frame)
+            else:
+                break
+
         prevTime = curTime
 
         cv2.imshow('Counting push-up', frame)
