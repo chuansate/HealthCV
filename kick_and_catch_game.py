@@ -5,14 +5,24 @@
 """
 import random
 from tkinter import messagebox
-
+import threading
 import cv2
 import mediapipe as mp
 import time
 import sys
 
+import playsound
+
 from Buttons import ButtonImage
 from kick_and_catch_game_objects import *
+
+
+def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
+    frame_width = frame.shape[1]
+    text_width = cv2.getTextSize(text, font, text_fs, text_thickness)[0][0]
+    cv2.putText(frame, text, (frame_width // 2 - text_width // 2, y),
+                font, text_fs,
+                (255, 0, 255), text_thickness)
 
 
 class KickAndCatchGame:
@@ -47,6 +57,7 @@ class KickAndCatchGame:
         mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
         mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
     ]
+    path_to_audios = "./audio/"
 
     feature_names = [
         "LEFT_SHOULDER",
@@ -75,7 +86,7 @@ class KickAndCatchGame:
 
     def __init__(self):
         self.__total_game_score = 0
-        self.__total_game_duration = 50  # the game lasts for this long, in seconds
+        self.__total_game_duration = 10  # the game lasts for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
         self.__stay_duration = 5  # how long the objects stay on the screen
@@ -146,20 +157,28 @@ class KickAndCatchGame:
                 for obj in self.__current_objects_on_frame:
                     if isinstance(obj, PunchObject):
                         if obj.isPunched(left_index_finger_tip_x, left_index_finger_tip_y):
+                            thread = threading.Thread(target=self.play_audio_for_breaking_rock)
+                            thread.start()
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
                         if obj.isPunched(right_index_finger_tip_x, right_index_finger_tip_y):
+                            thread = threading.Thread(target=self.play_audio_for_breaking_rock)
+                            thread.start()
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
 
                     if isinstance(obj, KickObject):
                         if obj.isKicked(left_foot_index_x, left_foot_index_y):
+                            thread = threading.Thread(target=self.play_audio_for_breaking_rock)
+                            thread.start()
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
                         if obj.isKicked(right_foot_index_x, right_foot_index_y):
+                            thread = threading.Thread(target=self.play_audio_for_breaking_rock)
+                            thread.start()
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
@@ -168,6 +187,12 @@ class KickAndCatchGame:
                 cv2.putText(webcam_frame, "Failed to detect user!",
                             (frame_width // 2 - 206 // 2, 50),
                             cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+
+    def play_audio_for_breaking_rock(self):
+        try:
+            playsound.playsound(KickAndCatchGame.path_to_audios + "rock_breaking.mp3")
+        except:
+            print("Probably the number of counter exceeds 20!")
 
     def generate_object(self, frame):
         """
@@ -216,12 +241,14 @@ class KickAndCatchGame:
         """
         Render final game results of the user, such as total score, best record, some messages...
         """
+        WORKOUT_IS_OVER = "Game over, this window will close in 5 seconds!"
+        WORKOUT_IS_OVER_fs = 1
+        WORKOUT_IS_OVER_th = 1
         frame_width = webcam_frame.shape[1]
-        cv2.putText(webcam_frame, "Game over!",
-                    (frame_width // 2 - 206 // 2, 75),
-                    cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+        center_opencv_text_horizontally(webcam_frame, 100, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
+                                        WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
         cv2.putText(webcam_frame, "Score: " + str(self.__total_game_score),
-                    (frame_width // 2 - 206 // 2, 100),
+                    (frame_width // 2 - 206 // 2, 150),
                     cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
 
     def save_game_data(self, webcam_frame):
@@ -247,7 +274,6 @@ def render_kick_and_catch_game_UI(uname, window):
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
     # x and y refers to coordinates of top left corner of the window
     # x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
 
@@ -256,7 +282,7 @@ def render_kick_and_catch_game_UI(uname, window):
     mpDraw = mp.solutions.drawing_utils
     prevTime = 0
     curTime = 0
-
+    workout_over_time_elapsed = 0
     # Loading icons
     startButtonImg = cv2.imread("icons/start_button2.png")
     startButtonImg_WIDTH = startButtonImg.shape[1]
@@ -309,28 +335,20 @@ def render_kick_and_catch_game_UI(uname, window):
                                 cv2.FONT_HERSHEY_PLAIN, 2,
                                 (255, 0, 255), 2)
                     game_object.count_down_game_duration(frame, curTime, prevTime)
-                    # game_object.display_sample_yoga_pose(frame)
-                    # cur_similarity_score = game_object.evaluate_user_pose(frame)
-                    # if cur_similarity_score > game_object.get_similarity_threshold():
-                    #     game_object.count_down(frame, curTime, prevTime)
-                    # else:
-                    #     game_object.set_hold_pose_time_elapsed(0)
                 else:
-                    game_object.render_final_results(frame)
-                    game_object.save_game_data(frame)
+                    workout_over_time_elapsed += (curTime - prevTime)
+                    if workout_over_time_elapsed < 5:
+                        game_object.render_final_results(frame)
+                        game_object.save_game_data(frame)
+                    else:
+                        break
 
         prevTime = curTime
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
-            if game_started and game_object_created:
-                game_object.set_game_over(True)
-                game_object.render_final_results(frame)
-                game_object.save_game_data(frame)
-                time.sleep(3)
-                break
+            msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
+            break
 
-        # if cv2.waitKey(1) & 0xFF == ord('q'):  # key Q comes after key E, hence user needs to press several times!
-        #     break
 
     if failed_to_turn_on_webcam:
         msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")

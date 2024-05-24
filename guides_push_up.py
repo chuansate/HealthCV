@@ -68,8 +68,8 @@ class GuidesPushUp:
 
     def __init__(self, set_count, rep_count):
         self.__current_step_index = 1
-        self.__total_num_steps =
-        when it is step 1, display an image of a person doing plank with straightened arms!
+        self.__total_num_steps = 2
+        # when it is step 1, display an image of a person doing plank with straightened arms!
 
 
         self.__set_count = set_count
