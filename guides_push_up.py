@@ -74,8 +74,9 @@ class GuidesPushUp:
         self.__correlation_threshold = 0.95  #  this is for telling if the body is straightened
         self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
-        self.__grad_UP_threshold = 5
-        self.__arms_straightened_threshold = 0.03
+        self.__grad_UP_threshold = 5  # For step 1
+        self.__arms_straightened_threshold = 0.05  # For step 1
+        self.__grad_DOWN_threshold = 0.1  # For step 2
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
@@ -83,53 +84,21 @@ class GuidesPushUp:
         self.__workout_over = False
         self.__step1_time_elapsed = 0
         self.__step2_time_elapsed = 0
+        self.__step3_time_elapsed = 0
         self.__played_step1_audio = False
         self.__played_step2_audio = False
+        self.__played_step3_audio = False
         self.__prev_step1_time_elapsed_int = 0
+        self.__prev_step2_time_elapsed_int = 0
+        self.__prev_step3_time_elapsed_int = 0
+
 
     def get_current_step_index(self):
         return self.__current_step_index
 
-    def isReadyToPushUp(self, pose_landmarks, prevTime, curTime):
-        """
-        The logic to determine a user is in ready pose:
-        shoulder_x > hip_x AND
-        hip_x > knee_x AND
-        knee_x > ankle_x AND
-        shoulder_y < hip_y AND (maybe no need to care about the y-coor first becoz push-up DOWN might not obey this rule)
-        hip_y < knee_y AND
-        knee_y < ankle_y AND
-        the correlation between the 4 points (shoulder, hip, knee, and ankle) is high enuf
-        """
-        self.__ready_pose_hold_elapsed += (curTime - prevTime)
-        left_shoulder_x = pose_landmarks[GuidesPushUp.features[0]].x
-        left_hip_x = pose_landmarks[GuidesPushUp.features[6]].x
-        left_knee_x = pose_landmarks[GuidesPushUp.features[8]].x
-        left_ankle_x = pose_landmarks[GuidesPushUp.features[10]].x
-        left_shoulder_y = pose_landmarks[GuidesPushUp.features[0]].y
-        left_ankle_y = pose_landmarks[GuidesPushUp.features[10]].y
-        grad_left = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
-        grad_left = abs(grad_left)
-
-        right_shoulder_x = pose_landmarks[GuidesPushUp.features[1]].x
-        right_hip_x = pose_landmarks[GuidesPushUp.features[7]].x
-        right_knee_x = pose_landmarks[GuidesPushUp.features[9]].x
-        right_ankle_x = pose_landmarks[GuidesPushUp.features[11]].x
-        right_shoulder_y = pose_landmarks[GuidesPushUp.features[1]].y
-        right_ankle_y = pose_landmarks[GuidesPushUp.features[11]].y
-        grad_right = (right_shoulder_y - right_ankle_y) / (right_shoulder_x - right_ankle_x)
-        grad_right = abs(grad_right)
-        if left_shoulder_x < left_hip_x and left_hip_x < left_knee_x and left_knee_x < left_ankle_x and grad_left < self.__grad_left_UP_threshold:
-            self.__user_in_ready_pose = True
-        elif right_shoulder_x > right_hip_x and right_hip_x > right_knee_x and right_knee_x > right_ankle_x and grad_right < self.__grad_left_UP_threshold:
-            self.__user_in_ready_pose = True
-        else:
-            self.__user_in_ready_pose = False
-        return self.__user_in_ready_pose
-
     # Step 1: Hold the plank pose
     def step1(self, frame, pose_landmarks, curTime, prevTime):
-        center_opencv_text_horizontally(frame, 70, "Get into plank pose with straightened arms!",
+        center_opencv_text_horizontally(frame, 50, "Get into plank pose with straightened arms!",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
         if not self.__played_step1_audio:
             thread = threading.Thread(target=self.play_audio_step1)
@@ -157,8 +126,6 @@ class GuidesPushUp:
         grad_right = abs(grad_right)
         body_x = [left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x]
         body_y = [left_shoulder_y, left_hip_y, left_knee_y, left_ankle_y]
-        # check for correlation as well, to see if the body is straightened!
-        # check for which point of four is not in place, then give instructions like "Raise ur hip" etc.
         corr, _ = pearsonr(body_x, body_y)
         corr = abs(corr)
         self.__step1_time_elapsed += (curTime - prevTime)
@@ -191,26 +158,95 @@ class GuidesPushUp:
 
     # Step 2: Go down while maintaining a straightened body
     def step2(self, frame, pose_landmarks, curTime, prevTime):
-        center_opencv_text_horizontally(frame, 70, "Go down while maintaining a straight body.",
+        center_opencv_text_horizontally(frame, 50, "Go down while maintaining a straight body.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
-        center_opencv_text_horizontally(frame, 100, "Make sure your chest is close to the ground.",
+        center_opencv_text_horizontally(frame, 75, "Make sure your chest is close to the ground.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
         if not self.__played_step2_audio:
             thread = threading.Thread(target=self.play_audio_step2)
             thread.start()
             self.__played_step2_audio = True
         self.__step2_time_elapsed += (curTime - prevTime)
-        # thread = threading.Thread(target=self.play_audio_step2)
-        # thread.start()
-        # self.__current_step_index += 1
+
+        left_shoulder_x = pose_landmarks[GuidesPushUp.features[0]].x
+        left_hip_x = pose_landmarks[GuidesPushUp.features[6]].x
+        left_hip_y = pose_landmarks[GuidesPushUp.features[6]].y
+        left_knee_x = pose_landmarks[GuidesPushUp.features[8]].x
+        left_knee_y = pose_landmarks[GuidesPushUp.features[8]].y
+        left_ankle_x = pose_landmarks[GuidesPushUp.features[10]].x
+        left_shoulder_y = pose_landmarks[GuidesPushUp.features[0]].y
+        left_ankle_y = pose_landmarks[GuidesPushUp.features[10]].y
+        grad_left = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
+        grad_left = abs(grad_left)
+
+        right_shoulder_x = pose_landmarks[GuidesPushUp.features[1]].x
+        right_hip_x = pose_landmarks[GuidesPushUp.features[7]].x
+        right_knee_x = pose_landmarks[GuidesPushUp.features[9]].x
+        right_ankle_x = pose_landmarks[GuidesPushUp.features[11]].x
+        right_shoulder_y = pose_landmarks[GuidesPushUp.features[1]].y
+        right_ankle_y = pose_landmarks[GuidesPushUp.features[11]].y
+        grad_right = (right_shoulder_y - right_ankle_y) / (right_shoulder_x - right_ankle_x)
+        grad_right = abs(grad_right)
+        body_x = [left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x]
+        body_y = [left_shoulder_y, left_hip_y, left_knee_y, left_ankle_y]
+        corr, _ = pearsonr(body_x, body_y)
+        corr = abs(corr)
+        if self.user_in_ready_pose(left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x, grad_left, right_shoulder_x,
+                                   right_hip_x, right_knee_x, right_ankle_x, grad_right):
+            left_wrist_x = pose_landmarks[GuidesPushUp.features[4]].x
+            right_wrist_x = pose_landmarks[GuidesPushUp.features[5]].x
+            # check for body not being straight
+            if corr < self.__correlation_threshold:
+                if round(self.__step2_time_elapsed) != self.__prev_step2_time_elapsed_int and round(
+                        self.__step2_time_elapsed) % 3 == 0:
+                    self.__prev_step2_time_elapsed_int = round(self.__step2_time_elapsed)
+                    thread = threading.Thread(target=self.play_audio_step1_body_not_straight)
+                    thread.start()
+                # make more conditional statements here!
+                # to tell whether they shud raise their hip or lower their hip
+
+            # check for the placement of the arms
+            elif not self.arms_align_with_shoulders(left_shoulder_x, left_wrist_x, right_shoulder_x, right_wrist_x):
+                if round(self.__step2_time_elapsed) != self.__prev_step2_time_elapsed_int and round(
+                        self.__step2_time_elapsed) % 3 == 0:
+                    self.__prev_step2_time_elapsed_int = round(self.__step2_time_elapsed)
+                    thread = threading.Thread(target=self.play_audio_step1_arms_align_shoulders)
+                    thread.start()
+            # check for body not being parallel to the ground
+            elif not self.body_parallel_to_ground(grad_left, grad_right):
+                if round(self.__step2_time_elapsed) != self.__prev_step2_time_elapsed_int and round(
+                        self.__step2_time_elapsed) % 3 == 0:
+                    self.__prev_step2_time_elapsed_int = round(self.__step2_time_elapsed)
+                    thread = threading.Thread(target=self.play_audio_step2_arms_body_not_parallel_to_ground)
+                    thread.start()
+            else:
+                print("Perfect posture for step 2!")
+                self.__step2_time_elapsed = 0
+                self.__current_step_index += 1
+        else:
+            center_opencv_text_horizontally(frame, 100, GuidesPushUp.GET_INTO_READY_POSE,
+                                            GuidesPushUp.GET_INTO_READY_POSE_fs,
+                                            GuidesPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
 
     # Step 3: Go up while maintaining a straightened body
-    def step3(self, frame, pose_landmarks):
+    def step3(self, frame, pose_landmarks, curTime, prevTime):
         center_opencv_text_horizontally(frame, 70, "Go up while maintaining a straight body.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
         # thread = threading.Thread(target=self.play_audio_step3)
         # thread.start()
-        self.__current_step_index += 1
+        if not self.__played_step3_audio:
+            thread = threading.Thread(target=self.play_audio_step3)
+            thread.start()
+            self.__played_step3_audio = True
+        self.__step3_time_elapsed += (curTime - prevTime)
+
+    def body_parallel_to_ground(self, grad_left, grad_right):
+        print("grad left = ", grad_left)
+        print("grad right = ", grad_right)
+        if grad_left < self.__grad_DOWN_threshold and grad_right < self.__grad_DOWN_threshold:
+            return True
+        else:
+            return False
 
     def arms_align_with_shoulders(self, left_shoulder_x, left_wrist_x, right_shoulder_x, right_wrist_x):
         if abs(left_shoulder_x - left_wrist_x) < self.__arms_straightened_threshold and abs(right_shoulder_x - right_wrist_x) < self.__arms_straightened_threshold:
@@ -255,6 +291,12 @@ class GuidesPushUp:
             playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "arms_align_shoulders.mp3"))
         except:
             print("Failed to play audio for the arms must align with shoulders of step 1!")
+
+    def play_audio_step2_arms_body_not_parallel_to_ground(self):
+        try:
+            playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "body_not_parallel_to_ground.mp3"))
+        except:
+            print("Failed to play audio for the body not parallel to ground of step 2!")
 
     def detect_pose_landmarks(self, frame):
         # To improve performance, optionally mark the image as not writeable to
@@ -352,7 +394,7 @@ def guides_push_up_page(uname, window):
                 elif cpu_obj.get_current_step_index() == 2:
                     cpu_obj.step2(frame, pose_results.pose_landmarks.landmark, curTime, prevTime)
                 elif cpu_obj.get_current_step_index() == 3:
-                    cpu_obj.step3(frame, pose_results.pose_landmarks.landmark)
+                    cpu_obj.step3(frame, pose_results.pose_landmarks.landmark, curTime, prevTime)
                 else:
                     cpu_obj.set_workout_is_over()
 
