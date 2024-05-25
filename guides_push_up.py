@@ -7,6 +7,8 @@ import mediapipe as mp
 import math
 import numpy as np
 import playsound
+import os
+from scipy.stats import pearsonr
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -64,21 +66,23 @@ class GuidesPushUp:
     FACE_CAMERA = "Face the camera"
     FACE_CAMERA_fs = 1
     FACE_CAMERA_th = 1
-    path_to_audios = "./audio/"
+    path_to_audios = "audio"
 
     def __init__(self):
         self.__current_step_index = 1
-        self.__total_num_steps = 2
         # when it is step 1, display an image of a person doing plank with straightened arms!
-
+        self.__correlation_threshold = 0.95  #  this is for telling if the body is straightened
         self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
-        self.__grad_left_UP_threshold = 5
+        self.__grad_UP_threshold = 5
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
         self.__push_up_UP_angle_threshold = 160
         self.__workout_over = False
+        self.__step1_time_elapsed = 0
+        self.__played_step1_audio = False
+        self.__prev_step1_time_elapsed_int = 0
 
     def get_current_step_index(self):
         return self.__current_step_index
@@ -121,45 +125,111 @@ class GuidesPushUp:
         return self.__user_in_ready_pose
 
     # Step 1: Hold the plank pose
-    def step1(self, frame):
+    def step1(self, frame, pose_landmarks, curTime, prevTime):
         center_opencv_text_horizontally(frame, 70, "Get into plank pose with straightened arms!",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
-        thread = threading.Thread(target=self.play_audio_step1)
-        thread.start()
-        self.__current_step_index += 1
+        if not self.__played_step1_audio:
+            thread = threading.Thread(target=self.play_audio_step1)
+            thread.start()
+            self.__played_step1_audio = True
+
+        left_shoulder_x = pose_landmarks[GuidesPushUp.features[0]].x
+        left_hip_x = pose_landmarks[GuidesPushUp.features[6]].x
+        left_hip_y = pose_landmarks[GuidesPushUp.features[6]].y
+        left_knee_x = pose_landmarks[GuidesPushUp.features[8]].x
+        left_knee_y = pose_landmarks[GuidesPushUp.features[8]].y
+        left_ankle_x = pose_landmarks[GuidesPushUp.features[10]].x
+        left_shoulder_y = pose_landmarks[GuidesPushUp.features[0]].y
+        left_ankle_y = pose_landmarks[GuidesPushUp.features[10]].y
+        grad_left = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
+        grad_left = abs(grad_left)
+
+        right_shoulder_x = pose_landmarks[GuidesPushUp.features[1]].x
+        right_hip_x = pose_landmarks[GuidesPushUp.features[7]].x
+        right_knee_x = pose_landmarks[GuidesPushUp.features[9]].x
+        right_ankle_x = pose_landmarks[GuidesPushUp.features[11]].x
+        right_shoulder_y = pose_landmarks[GuidesPushUp.features[1]].y
+        right_ankle_y = pose_landmarks[GuidesPushUp.features[11]].y
+        grad_right = (right_shoulder_y - right_ankle_y) / (right_shoulder_x - right_ankle_x)
+        grad_right = abs(grad_right)
+        body_x = [left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x]
+        body_y = [left_shoulder_y, left_hip_y, left_knee_y, left_ankle_y]
+        # check for correlation as well, to see if the body is straightened!
+        # check for which point of four is not in place, then give instructions like "Raise ur hip" etc.
+        corr, _ = pearsonr(body_x, body_y)
+        corr = abs(corr)
+        self.__step1_time_elapsed += (curTime - prevTime)
+        if self.user_is_slanted(left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x, grad_left):
+            print("corr = ", corr)
+            if corr < self.__correlation_threshold:
+                if round(self.__step1_time_elapsed) != self.__prev_step1_time_elapsed_int and round(self.__step1_time_elapsed) % 3 == 0:
+                    self.__prev_step1_time_elapsed_int = round(self.__step1_time_elapsed)
+                    thread = threading.Thread(target=self.play_audio_step1_body_not_straight)
+                    thread.start()
+            # check for the placement of the arms
+            elif False:
+                pass
+            else:
+                print("Perfect posture for step 1!")
+                self.__step1_time_elapsed = 0
+                self.__current_step_index += 1
+        else:
+            center_opencv_text_horizontally(frame, 100, GuidesPushUp.GET_INTO_READY_POSE,
+                                            GuidesPushUp.GET_INTO_READY_POSE_fs,
+                                            GuidesPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+
+        # if left_shoulder_x < left_hip_x and left_hip_x < left_knee_x and left_knee_x < left_ankle_x and grad_left < self.__grad_UP_threshold:
+        #     self.__user_in_ready_pose = True
+        # elif right_shoulder_x > right_hip_x and right_hip_x > right_knee_x and right_knee_x > right_ankle_x and grad_right < self.__grad_UP_threshold:
+        #     self.__user_in_ready_pose = True
+        # else:
+        #     self.__user_in_ready_pose = False
+
+    def user_is_slanted(self, left_shoulder_x, left_hip_x, left_knee_x, left_ankle_x, grad_left):
+        if left_shoulder_x < left_hip_x and left_hip_x < left_knee_x and left_knee_x < left_ankle_x and grad_left < self.__grad_UP_threshold:
+            return True
+        else:
+            return False
 
     def play_audio_step1(self):
         try:
-            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step1.mp3")
+            playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "push_up_step1.mp3"))
         except:
             print("Failed to play audio for step 1!")
+
+    def play_audio_step1_body_not_straight(self):
+        try:
+            playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "body_not_straight.mp3"))
+        except:
+            print("Failed to play audio for body not straight of step 1!")
+
     # Step 2: Go down while maintaining a straightened body
-    def step2(self, frame):
+    def step2(self, frame, pose_landmarks):
         center_opencv_text_horizontally(frame, 70, "Go down while maintaining a straight body.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
         center_opencv_text_horizontally(frame, 100, "Make sure your chest is close to the ground.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
-        thread = threading.Thread(target=self.play_audio_step2)
-        thread.start()
+        # thread = threading.Thread(target=self.play_audio_step2)
+        # thread.start()
         self.__current_step_index += 1
 
 
     def play_audio_step2(self):
         try:
-            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step2.mp3")
+            playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "push_up_step2.mp3"))
         except:
             print("Failed to play audio for step 2!")
     # Step 3: Go up while maintaining a straightened body
-    def step3(self, frame):
+    def step3(self, frame, pose_landmarks):
         center_opencv_text_horizontally(frame, 70, "Go up while maintaining a straight body.",
                                         1, 1, cv2.FONT_HERSHEY_PLAIN)
-        thread = threading.Thread(target=self.play_audio_step3)
-        thread.start()
+        # thread = threading.Thread(target=self.play_audio_step3)
+        # thread.start()
         self.__current_step_index += 1
 
     def play_audio_step3(self):
         try:
-            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step3.mp3")
+            playsound.playsound(os.path.join(GuidesPushUp.path_to_audios, "push_up_step3.mp3"))
         except:
             print("Failed to play audio for step 3!")
 
@@ -192,7 +262,6 @@ class GuidesPushUp:
     def _get_angle_betw_two_vectors(self, vec1, vec2):
         angle_radian = math.acos((np.dot(vec1, vec2)) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
         return int(round(math.degrees(angle_radian), 0))
-
 
     def get_user_status(self):
         return self.__user_status
@@ -256,11 +325,11 @@ def guides_push_up_page(uname, window):
                         (255, 0, 255), 1)
             if pose_results.pose_landmarks:
                 if cpu_obj.get_current_step_index() == 1:
-                    cpu_obj.step1(frame)
+                    cpu_obj.step1(frame, pose_results.pose_landmarks.landmark, curTime, prevTime)
                 elif cpu_obj.get_current_step_index() == 2:
-                    cpu_obj.step2(frame)
+                    cpu_obj.step2(frame, pose_results.pose_landmarks.landmark)
                 elif cpu_obj.get_current_step_index() == 3:
-                    cpu_obj.step3(frame)
+                    cpu_obj.step3(frame, pose_results.pose_landmarks.landmark)
                 else:
                     cpu_obj.set_workout_is_over()
 

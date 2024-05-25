@@ -13,6 +13,7 @@ import math
 from tkinter import ttk, messagebox
 import threading
 import playsound
+from scipy.stats import pearsonr
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
