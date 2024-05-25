@@ -6,8 +6,8 @@ from gtts import gTTS
 # play the converted audio
 #
 # The text that you want to convert to audio
-mytext = 'twenty'
-path = "./audio/20.mp3"
+mytext = 'Step 3, go up while maintaining a straight body.'
+path = "./audio/push_up_step3.mp3"
 # Language in which you want to convert
 language = 'en'
 

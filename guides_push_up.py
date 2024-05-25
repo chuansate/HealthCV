@@ -66,26 +66,22 @@ class GuidesPushUp:
     FACE_CAMERA_th = 1
     path_to_audios = "./audio/"
 
-    def __init__(self, set_count, rep_count):
+    def __init__(self):
         self.__current_step_index = 1
         self.__total_num_steps = 2
         # when it is step 1, display an image of a person doing plank with straightened arms!
 
-
-        self.__set_count = set_count
-        self.__rep_count = rep_count
-        self.__current_set_count = 1
-        self.__push_up_count = 0
         self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
-        self.__ready_pose_hold_elapsed = 0
-        self.__ready_pose_hold_duration_threshold = 3
         self.__grad_left_UP_threshold = 5
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
         self.__push_up_UP_angle_threshold = 160
         self.__workout_over = False
+
+    def get_current_step_index(self):
+        return self.__current_step_index
 
     def isReadyToPushUp(self, pose_landmarks, prevTime, curTime):
         """
@@ -124,11 +120,48 @@ class GuidesPushUp:
             self.__user_in_ready_pose = False
         return self.__user_in_ready_pose
 
-    def get_ready_pose_hold_elapsed(self):
-        return self.__ready_pose_hold_elapsed
+    # Step 1: Hold the plank pose
+    def step1(self, frame):
+        center_opencv_text_horizontally(frame, 70, "Get into plank pose with straightened arms!",
+                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+        thread = threading.Thread(target=self.play_audio_step1)
+        thread.start()
+        self.__current_step_index += 1
 
-    def get_ready_pose_hold_duration_threshold(self):
-        return self.__ready_pose_hold_duration_threshold
+    def play_audio_step1(self):
+        try:
+            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step1.mp3")
+        except:
+            print("Failed to play audio for step 1!")
+    # Step 2: Go down while maintaining a straightened body
+    def step2(self, frame):
+        center_opencv_text_horizontally(frame, 70, "Go down while maintaining a straight body.",
+                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+        center_opencv_text_horizontally(frame, 100, "Make sure your chest is close to the ground.",
+                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+        thread = threading.Thread(target=self.play_audio_step2)
+        thread.start()
+        self.__current_step_index += 1
+
+
+    def play_audio_step2(self):
+        try:
+            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step2.mp3")
+        except:
+            print("Failed to play audio for step 2!")
+    # Step 3: Go up while maintaining a straightened body
+    def step3(self, frame):
+        center_opencv_text_horizontally(frame, 70, "Go up while maintaining a straight body.",
+                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+        thread = threading.Thread(target=self.play_audio_step3)
+        thread.start()
+        self.__current_step_index += 1
+
+    def play_audio_step3(self):
+        try:
+            playsound.playsound(GuidesPushUp.path_to_audios + "push_up_step3.mp3")
+        except:
+            print("Failed to play audio for step 3!")
 
     def detect_pose_landmarks(self, frame):
         # To improve performance, optionally mark the image as not writeable to
@@ -143,14 +176,10 @@ class GuidesPushUp:
 
         return results
 
-    def reset_ready_pose_hold_elapsed(self):
-        self.__ready_pose_hold_elapsed = 0
 
     def reset_user_status(self):
         self.__user_status = 1
 
-    def get_push_up_count(self):
-        return self.__push_up_count
 
     def _get_vector_by_landmark_names(self, landmarks_dict, name_from, name_to):
         vec_from = np.array(landmarks_dict[name_from])
@@ -165,38 +194,6 @@ class GuidesPushUp:
         return int(round(math.degrees(angle_radian), 0))
 
 
-    def update_counter(self, pose_landmarks):
-        # pass in the body landmarks and calculate the angle at ankle
-        # keyword: calculate the angle betw 2 vectors
-        # extract the x-, and y-coordinates of the 8 body landmarks as features
-        landmarks_dict = {}
-        for index, ft in enumerate(GuidesPushUp.features):
-            landmark_coordinates = pose_landmarks[ft]
-            landmarks_dict[GuidesPushUp.features_names[index]] = [landmark_coordinates.x, landmark_coordinates.y]
-
-        left_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
-        left_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
-        self.__left_elbow_angle = self._get_angle_betw_two_vectors(left_vec_elbow_to_shoulder, left_vec_elbow_to_wrist)
-        if self.__left_elbow_angle <= self.__push_up_DOWN_angle_threshold and self.__user_status == 1 and self.__push_up_count < self.__rep_count:
-            self.__user_status = 0
-        elif self.__left_elbow_angle >= self.__push_up_UP_angle_threshold and self.__user_status == 0 and self.__push_up_count < self.__rep_count:
-            self.__user_status = 1
-            self.__push_up_count += 1
-            thread = threading.Thread(target=self.play_audio_for_counter)
-            thread.start()
-
-        if self.__current_set_count < self.__set_count and self.__push_up_count == self.__rep_count:
-            self.__current_set_count += 1
-            self.__push_up_count = 0
-        elif self.__current_set_count == self.__set_count and self.__push_up_count == self.__rep_count:
-            self.__workout_over = True
-
-    def play_audio_for_counter(self):
-        try:
-            playsound.playsound(GuidesPushUp.path_to_audios + str(self.__push_up_count) + ".mp3")
-        except:
-            print("Probably the number of counter exceeds 20!")
-
     def get_user_status(self):
         return self.__user_status
 
@@ -206,24 +203,11 @@ class GuidesPushUp:
     def get_left_elbow_angle(self):
         return self.__left_elbow_angle
 
-    def save_data(self, frame):
-        WORKOUT_IS_OVER = "Saving data..."
-        WORKOUT_IS_OVER_fs = 1
-        WORKOUT_IS_OVER_th = 1
-        center_opencv_text_horizontally(frame, 100, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
-                                        WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
-
     def workout_is_over(self):
         return self.__workout_over
 
-    def get_set_count(self):
-        return self.__set_count
-
-    def get_rep_count(self):
-        return self.__rep_count
-
-    def get_current_set_count(self):
-        return self.__current_set_count
+    def set_workout_is_over(self):
+        self.__workout_over = True
 
 
 def guides_push_up_page(uname, window):
@@ -249,7 +233,7 @@ def guides_push_up_page(uname, window):
     WORKOUT_IS_OVER_fs = 1
     WORKOUT_IS_OVER_th = 1
 
-    cpu_obj = GuidesPushUp(10, 3)
+    cpu_obj = GuidesPushUp()
     while True:
         success, frame = cap.read()
         if not success:
@@ -271,32 +255,24 @@ def guides_push_up_page(uname, window):
                         cv2.FONT_HERSHEY_PLAIN, 1,
                         (255, 0, 255), 1)
             if pose_results.pose_landmarks:
-                if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
-                    if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
-                        cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
-
-                    else:
-                        center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
-                            int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
-                                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
-                    cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-                    if cpu_obj.get_user_status() == 0:
-                        cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
-                    else:
-                        cv2.putText(frame, "Push-up UP", (frame_width - 150, 50),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
+                if cpu_obj.get_current_step_index() == 1:
+                    cpu_obj.step1(frame)
+                elif cpu_obj.get_current_step_index() == 2:
+                    cpu_obj.step2(frame)
+                elif cpu_obj.get_current_step_index() == 3:
+                    cpu_obj.step3(frame)
                 else:
-                    center_opencv_text_horizontally(frame, 100, GuidesPushUp.GET_INTO_READY_POSE,
-                                                    GuidesPushUp.GET_INTO_READY_POSE_fs,
-                                                    GuidesPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-                    center_opencv_text_horizontally(frame, 125, GuidesPushUp.FACE_CAMERA,
-                                                    GuidesPushUp.FACE_CAMERA_fs,
-                                                    GuidesPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
+                    cpu_obj.set_workout_is_over()
+
+                # if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
+                #
+                # else:
+                #     center_opencv_text_horizontally(frame, 100, GuidesPushUp.GET_INTO_READY_POSE,
+                #                                     GuidesPushUp.GET_INTO_READY_POSE_fs,
+                #                                     GuidesPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+                #     center_opencv_text_horizontally(frame, 125, GuidesPushUp.FACE_CAMERA,
+                #                                     GuidesPushUp.FACE_CAMERA_fs,
+                #                                     GuidesPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
 
             else:
                 # Fails to detect the user
@@ -307,7 +283,6 @@ def guides_push_up_page(uname, window):
             if workout_over_time_elapsed < 5:
                 center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
                                                 WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
-                cpu_obj.save_data(frame)
             else:
                 break
 
