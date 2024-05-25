@@ -86,7 +86,7 @@ class KickAndCatchGame:
 
     def __init__(self):
         self.__total_game_score = 0
-        self.__total_game_duration = 10  # the game lasts for this long, in seconds
+        self.__total_game_duration = 60  # the game lasts for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
         self.__stay_duration = 5  # how long the objects stay on the screen
