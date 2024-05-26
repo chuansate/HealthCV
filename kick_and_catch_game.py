@@ -84,13 +84,13 @@ class KickAndCatchGame:
         "RIGHT_FOOT_INDEX"
     ]
 
-    def __init__(self):
+    def __init__(self, num_objects, stay_duration):
         self.__total_game_score = 0
         self.__total_game_duration = 60  # the game lasts for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
-        self.__stay_duration = 5  # how long the objects stay on the screen
-        self.__max_num_objects_on_frame = 4
+        self.__stay_duration = stay_duration  # how long the objects stay on the screen
+        self.__max_num_objects_on_frame = num_objects
         self.__current_objects_on_frame = []
 
     def get_total_game_score(self):
@@ -276,7 +276,7 @@ def render_kick_and_catch_game_UI(uname, window):
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     # x and y refers to coordinates of top left corner of the window
     # x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
-
+    diff_level = "NULL"
     mpHands = mp.solutions.hands
     hands = mpHands.Hands(False)  # modify `max_num_hands`
     mpDraw = mp.solutions.drawing_utils
@@ -284,9 +284,17 @@ def render_kick_and_catch_game_UI(uname, window):
     curTime = 0
     workout_over_time_elapsed = 0
     # Loading icons
-    startButtonImg = cv2.imread("icons/start_button2.png")
-    startButtonImg_WIDTH = startButtonImg.shape[1]
-    startButtonImg_HEIGHT = startButtonImg.shape[0]
+    easyButtonImg = cv2.imread("icons/easy.jpg")
+    easyButtonImg_WIDTH = easyButtonImg.shape[1]
+    easyButtonImg_HEIGHT = easyButtonImg.shape[0]
+
+    normalButtonImg = cv2.imread("icons/normal.jpg")
+    normalButtonImg_WIDTH = normalButtonImg.shape[1]
+    normalButtonImg_HEIGHT = normalButtonImg.shape[0]
+
+    hardButtonImg = cv2.imread("icons/hard.jpg")
+    hardButtonImg_WIDTH = hardButtonImg.shape[1]
+    hardButtonImg_HEIGHT = hardButtonImg.shape[0]
 
     # Flag
     game_started = False
@@ -310,8 +318,12 @@ def render_kick_and_catch_game_UI(uname, window):
         if not game_started:
             rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgbFrame)
-            startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
-                                      "start_but")
+            easyButton = ButtonImage(frame, easyButtonImg, (frame_width // 2 - easyButtonImg_WIDTH // 2, 100),
+                                      "easy_but")
+            normalButton = ButtonImage(frame, normalButtonImg, (frame_width // 2 - normalButtonImg_WIDTH // 2, 200),
+                                     "normal_but")
+            hardButton = ButtonImage(frame, hardButtonImg, (frame_width // 2 - hardButtonImg_WIDTH // 2, 300),
+                                     "hard_but")
             if results.multi_hand_landmarks:
                 for handLms in results.multi_hand_landmarks:
                     # don't pass HAND_CONNECTIONS if u just want the landmarks
@@ -319,11 +331,25 @@ def render_kick_and_catch_game_UI(uname, window):
                     index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
                     index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
 
-                    if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
+                    if easyButton.isTapped(index_finger_tip_x, index_finger_tip_y):
                         game_started = True
+                        diff_level = "EASY"
+                    elif normalButton.isTapped(index_finger_tip_x, index_finger_tip_y):
+                        game_started = True
+                        diff_level = "NORMAL"
+                    elif hardButton.isTapped(index_finger_tip_x, index_finger_tip_y):
+                        game_started = True
+                        diff_level = "HARD"
         else:
             if not game_object_created:
-                game_object = KickAndCatchGame()
+                if diff_level == "EASY":
+                    game_object = KickAndCatchGame(4, 8)
+                elif diff_level == "NORMAL":
+                    game_object = KickAndCatchGame(5, 7)
+                elif diff_level == "HARD":
+                    game_object = KickAndCatchGame(6, 6)
+                else:
+                    game_object = KickAndCatchGame(4, 8)
                 game_object_created = True
             else:
 
