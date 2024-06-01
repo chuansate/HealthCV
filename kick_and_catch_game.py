@@ -4,16 +4,19 @@
  while the objects with hand icon means the user has to hit it using hand.
 """
 import random
+from datetime import datetime
 from tkinter import messagebox
 import threading
 import cv2
 import mediapipe as mp
 import time
 import sys
+from data_models import User
 
 import playsound
 
 from Buttons import ButtonImage
+from data_models.kick_and_catch_match_records import KickAndCatchMatchRecord
 from kick_and_catch_game_objects import *
 
 
@@ -300,6 +303,15 @@ def render_kick_and_catch_game_UI(uname, window):
     game_started = False
     game_object_created = False
     failed_to_turn_on_webcam = False
+    saved_game_data = False
+
+    user = User()
+    best_record = user.get_best_record(uname, "Kick-And-Catch")
+    game_record = KickAndCatchMatchRecord()
+    cur_datetime = datetime.now()
+    if best_record is None:
+        print("Either username doesnt exist or the game doesnt exist!")
+        best_record = -1
     while True:
         success, frame = cap.read()
         if not success:
@@ -360,12 +372,18 @@ def render_kick_and_catch_game_UI(uname, window):
                     cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
                                 cv2.FONT_HERSHEY_PLAIN, 2,
                                 (255, 0, 255), 2)
+                    cv2.putText(frame, "Best: " + str(best_record), (frame_width - 200, 75),
+                                cv2.FONT_HERSHEY_PLAIN, 2,
+                                (255, 0, 255), 2)
                     game_object.count_down_game_duration(frame, curTime, prevTime)
                 else:
                     workout_over_time_elapsed += (curTime - prevTime)
                     if workout_over_time_elapsed < 5:
                         game_object.render_final_results(frame)
                         game_object.save_game_data(frame)
+                        if saved_game_data:
+                            game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
+                            saved_game_data = True
                     else:
                         break
 
@@ -374,7 +392,6 @@ def render_kick_and_catch_game_UI(uname, window):
         if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
             msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break
-
 
     if failed_to_turn_on_webcam:
         msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")

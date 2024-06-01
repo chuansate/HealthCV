@@ -31,5 +31,22 @@ class User:
         })
         client.close()
 
+    def get_best_record(self, uname, game_name):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        user_query = {"uname": uname}
+        game_query = {"game_name": game_name}
+        users_col = db[USERS_COLLECTION_NAME]
+        games_col = db[GAMES_COLLECTION_NAME]
+        game_doc = games_col.find_one(game_query)
+        user_doc = users_col.find_one(user_query)
+        best_record = None
+        if game_doc is not None and user_doc is not None:
+            game_id = game_doc["_id"]
+            best_record = user_doc["best_records"][str(game_id)]
+
+        client.close()
+        return best_record
+
 
 
