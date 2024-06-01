@@ -1,44 +1,35 @@
-from .database_constants import HOST, DATABASE_NAME, USERS_COLLECTION_NAME
+from .database_constants import HOST, DATABASE_NAME, USERS_COLLECTION_NAME, GAMES_COLLECTION_NAME
 import pymongo
 
 
 class User:
-    def __init__(self, uname, pwd):
-        self.__uname = uname
-        self.__pwd = pwd
+    def __init__(self):
+        pass
 
-    def search_by_uname(self):
+    def search_by_uname(self, uname):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
         users_col = db[USERS_COLLECTION_NAME]
-        query = {"uname": self.__uname}
+        query = {"uname": uname}
         found_doc = users_col.find_one(query)
         client.close()
         return found_doc
 
-    def create_new_user(self):
+    def create_new_user(self, uname, pwd, acc_created_time):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
         users_col = db[USERS_COLLECTION_NAME]
+        games_col = db[GAMES_COLLECTION_NAME]
+        best_records = {}
+        for game in games_col.find():
+            best_records[str(game["_id"])] = 0
         users_col.insert_one({
-            "uname": self.__uname,
-            "pwd": self.__pwd
+            "uname": uname,
+            "pwd": pwd,
+            "created_time": acc_created_time,
+            "best_records": best_records
         })
         client.close()
 
-    def get_uname(self):
-        return self.__uname
 
-    def set_uname(self, uname):
-        if type(uname) != str:
-            raise TypeError("The username must be of string type!")
-        self.__uname = uname
-
-    def get_pwd(self):
-        return self.__pwd
-
-    def set_pwd(self, pwd):
-        if type(pwd) != str:
-            raise TypeError("The password must be of string type!")
-        self.__pwd = pwd
 

@@ -8,13 +8,13 @@ import pymongo
 from PIL import Image, ImageTk
 from pymongo import errors
 from data_models import User
-
+from datetime import datetime
 from paths_to_images import PATH_TO_BACKGROUND_IMG
 
 
 def validate_login_credentials(window, entered_uname, entered_pwd):
-    user = User(entered_uname, entered_pwd)
-    found = user.search_by_uname()
+    user = User()
+    found = user.search_by_uname(entered_uname)
     if found is not None:
         if found["pwd"] == entered_pwd:
             from home_page import home_page
@@ -42,11 +42,13 @@ def credentials_are_valid(entered_uname, entered_pwd):
 
 def validate_register_credentials(entered_uname, entered_pwd):
     if credentials_are_valid(entered_uname, entered_pwd):
-        new_user = User(entered_uname, entered_pwd)
-        found = new_user.search_by_uname()
+        new_user = User()
+        current_time = datetime.now()
+        found = new_user.search_by_uname(entered_uname)
         if found is None:
             try:
-                new_user.create_new_user()
+                new_user.create_new_user(entered_uname, entered_pwd, current_time)
+                print("New account registered at datetime = ", current_time)
                 msg = messagebox.showinfo("Information", "New account has been registered!")
             except errors.WriteConcernError as wce:
                 print(wce)
