@@ -364,7 +364,6 @@ def render_kick_and_catch_game_UI(uname, window):
                     game_object = KickAndCatchGame(4, 8)
                 game_object_created = True
             else:
-
                 if not game_object.get_game_over():
                     cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
