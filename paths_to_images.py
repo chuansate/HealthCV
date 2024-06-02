@@ -11,3 +11,4 @@ PATH_TO_YOGA_IMITATION_BG_IMG = "./icons/yoga_imitation_game.png"
 # For the workout plan page
 PATH_TO_PUSH_UP_ICON = "./icons/push_up.png"
 PATH_TO_BICEPS_CURL_ICON = "./icons/biceps_curl.png"
+PATH_TO_LEADERBOARD_ICON = "./icons/leaderboard_icon.png"
