@@ -369,19 +369,19 @@ def render_kick_and_catch_game_UI(uname, window):
                     cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
-                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
-                                cv2.FONT_HERSHEY_PLAIN, 2,
-                                (255, 0, 255), 2)
-                    cv2.putText(frame, "Best: " + str(best_record), (frame_width - 200, 75),
-                                cv2.FONT_HERSHEY_PLAIN, 2,
-                                (255, 0, 255), 2)
+                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50),
+                                cv2.FONT_HERSHEY_PLAIN, 1.2,
+                                (255, 0, 255), 1)
+                    cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 75),
+                                cv2.FONT_HERSHEY_PLAIN, 1.2,
+                                (255, 0, 255), 1)
                     game_object.count_down_game_duration(frame, curTime, prevTime)
                 else:
                     workout_over_time_elapsed += (curTime - prevTime)
                     if workout_over_time_elapsed < 5:
                         game_object.render_final_results(frame)
                         game_object.save_game_data(frame)
-                        if saved_game_data:
+                        if not saved_game_data:
                             game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
                             saved_game_data = True
                     else:

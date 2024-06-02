@@ -8,6 +8,7 @@ class KickAndCatchMatchRecord:
         pass
 
     def create_new_match_record(self, uname, score, datetime):
+        print("Saving new match record in the backend for kick-and-catch...")
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
         users_col = db[USERS_COLLECTION_NAME]
@@ -22,23 +23,23 @@ class KickAndCatchMatchRecord:
             })
             if score > user_doc["best_records"][str(self.get_game_id())]:
                 self.update_best_record(uname, score)
+            print("Finished saving new match record for kick-and-catch!")
         else:
             print("Username is not found when creating a new match record for kick-and-catch!")
         client.close()
 
-    def update_best_record(self, uname, score):
+    def update_best_record(self, uname, best_score):
+        print("Updating best records in backend for Kick-and-catch game, modifying collection `users`...")
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
-        myquery = {"uname": uname}
-        newvalues = {"$set": {"best_records": "Canyon 123"}}
-
-        # Pymongo updating nested dictionaries
-        # Go to test123.py, that one is the modified version!
-        # https://stackoverflow.com/questions/30782373/updating-nested-document-in-mongodb-using-pymongo
-        if user_doc is not None:
-
-        else:
-            print("Username is not found when creating a new match record for kick-and-catch!")
+        users_col = db[USERS_COLLECTION_NAME]
+        best_records = users_col.find_one({"uname": uname})["best_records"]
+        best_records[str(self.get_game_id())] = best_score
+        users_col.update_one(
+            {"uname": uname},
+            {"$set": {"best_records": best_records}}
+        )
+        print("Finished updating best record!")
         client.close()
 
     def get_game_id(self):
