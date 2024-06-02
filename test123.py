@@ -1,61 +1,136 @@
 # Import the required module for text
 # to speech conversion
-# from gtts import gTTS
-#
-# # This module is imported so that we can
-# # play the converted audio
-# #
-# # The text that you want to convert to audio
-# mytext = 'Body not straight'
-# path = "./audio/body_not_straight.mp3"
-# # Language in which you want to convert
-# language = 'en'
-#
-# # Passing the text and language to the engine,
-# # here we have marked slow=False. Which tells
-# # the module that the converted audio should
-# # have a high speed
-# myobj = gTTS(text=mytext, lang=language, slow=False)
-#
-# # Saving the converted audio in a mp3 file named
-# # welcome
-#
-# myobj.save(path)
-# import playsound
-# playsound.playsound(path)
-#
-import numpy as np
-from scipy.stats import pearsonr
+def text_to_speech():
+    from gtts import gTTS
 
-a=[1, 2, 3]
+    # This module is imported so that we can
+    # play the converted audio
+    #
+    # The text that you want to convert to audio
+    mytext = 'Congratulation, you have learned how to do push-up!'
+    path = "./audio/congrats_pushup.mp3"
+    # Language in which you want to convert
+    language = 'en'
 
-# input array 2
-b=[1, 2, 3]
+    # Passing the text and language to the engine,
+    # here we have marked slow=False. Which tells
+    # the module that the converted audio should
+    # have a high speed
+    myobj = gTTS(text=mytext, lang=language, slow=False)
 
-corr, _ = pearsonr(a, b)
-print('Pearsons correlation: %.6f' % corr)
-print(abs(int(corr)))
+    # Saving the converted audio in a mp3 file named
+    # welcome
 
-print(10.1 % 3)
+    myobj.save(path)
+    import playsound
+    playsound.playsound(path)
+#
 ##############
-# import pymongo
-#
-# myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-#
-# mydb = myclient["HealthCV"]
-#
-# dblist = myclient.list_database_names()
-# print("Existing databases = ", dblist)
-# print("Existing collections in HealthCV database = ", mydb.list_collection_names())
-# if "HealthCV" in dblist:
-#     print("The database exists.")
-#
-# users_collection = mydb["users"]
-#
-# for rec in users_collection.find():
-#     print(rec)
+import pymongo
 
-# record = { "uname": "Lim", "pwd": "Lim123" }
-#
-# x = users_collection.insert_one(record)
-# print("The record with id " + str(x.inserted_id) + " just got inserted!")
+myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+
+mydb = myclient["HealthCV"]
+
+dblist = myclient.list_database_names()
+print("Existing databases = ", dblist)
+print("Existing collections in HealthCV database = ", mydb.list_collection_names())
+if "HealthCV" in dblist:
+    print("The database exists.")
+
+
+def print_users_collection():
+    print("Printing collection `users`:")
+    collection = mydb["users"]
+    for x in collection.find():
+        print(x)
+
+def print_games_collection():
+    print("Printing collection `games`:")
+    collection = mydb["games"]
+    for x in collection.find():
+        print(x)
+
+def print_kick_and_catch_match_recs_collection():
+    print("Printing collection `kick_and_catch_match_records`:")
+    collection = mydb["kick_and_catch_match_records"]
+    for x in collection.find():
+        print(x)
+
+def print_yoga_estimation_match_recs_collection():
+    print("Printing collection `yoga_imitation_match_records`:")
+    collection = mydb["yoga_imitation_match_records"]
+    for x in collection.find():
+        print(x)
+
+def print_StackOverflow_collection():
+    print("Printing collection `StackOverflow`:")
+    collection = mydb.StackOverflow
+    for x in collection.find():
+        print(x)
+
+
+def delete_StackOverflow_collection():
+    collection = mydb.StackOverflow
+    collection.delete_many({})
+
+
+# THIS IS WORKING!!
+def update_nested_docs_simple_criteria():
+    collection = mydb.StackOverflow   #collection name= StackOverflow
+    record = {
+        "uname" : "value1",
+        "pwd" : "value2",
+        "created_time": "value3",
+        "best_records": {
+            "game_id1": 0,
+            "game_id2": 100
+        }
+    }
+    collection.insert_one(record)
+    for data in collection.find():
+        print("Inserted Data=", data)
+    best_records = collection.find_one({"uname": "value1"})["best_records"]
+    best_records["game_id1"] = -99
+    collection.update_one(
+        {"uname": "value1"},
+        {"$set":{"best_records" : best_records}}
+    )
+
+print_users_collection()
+print_games_collection()
+print_yoga_estimation_match_recs_collection()
+def update_nested_docs_complex_criteria():
+    collection4 = mydb.StackOverflow   #collection name= StackOverflow
+    record = {
+        "field1" : "value1",
+        "field2" : "value2",
+        "field3" : {
+            "list" : [
+                {
+                   "content" : "valueA",
+                   "start" : "valueA",
+                   "group" : "valueA"
+                },
+                {
+                   "content" : "valueB",
+                   "start" : "Needs_Updation",
+                   "group" : "valueB"
+                }
+            ]
+        }
+    }
+    collection4.insert_one(record)
+    for data in collection4.find():
+        print("Inserted Data=", data)
+
+    collection4.update_one(
+        {
+            "field1":"value1" ,
+            "field3.list" :{"$elemMatch" : {"content" : "valueB","group": "valueB" }}
+        },
+        {"$set":{"field3.list.$.start" : "Updated_Value"}}
+    )
+
+    for data in collection4.find():
+        print("Updated Data=", data)
