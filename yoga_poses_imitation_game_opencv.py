@@ -5,6 +5,7 @@ but the distance of the user from camera might vary. If the user is close to cam
 The new coordinates of the user can be broken down into x-components and y-components, they can be further normalized based on the x range and y range (refer to normalization in structured dataset).
 Link to common yoga poses: https://greatist.com/move/common-yoga-poses
 """
+from datetime import datetime
 from tkinter import messagebox
 
 import cv2
@@ -15,6 +16,8 @@ import sys
 import os
 import csv
 import math
+
+from data_models import User, YogaImitationMatchRecord
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -337,6 +340,14 @@ def render_yoga_poses_imitation_game_UI(uname, window):
     failed_to_turn_on_webcam = False
     saved_game_data = False
 
+    user = User()
+    best_record = user.get_best_record(uname, "Yoga Imitation")
+    game_record = YogaImitationMatchRecord()
+    cur_datetime = datetime.now()
+    if best_record is None:
+        print("Either username doesnt exist or the game doesnt exist!")
+        best_record = -1
+
     while True:
         success, frame = cap.read()
         if not success:
@@ -374,9 +385,12 @@ def render_yoga_poses_imitation_game_UI(uname, window):
                     cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
-                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 200, 50),
-                                cv2.FONT_HERSHEY_PLAIN, 2,
-                                (255, 0, 255), 2)
+                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50),
+                                cv2.FONT_HERSHEY_PLAIN, 1.2,
+                                (255, 0, 255), 1)
+                    cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 100),
+                                cv2.FONT_HERSHEY_PLAIN, 1.2,
+                                (255, 0, 255), 1)
 
                     cur_similarity_score = game_object.evaluate_user_pose(frame)
                     game_object.display_sample_yoga_pose(frame)
@@ -389,9 +403,9 @@ def render_yoga_poses_imitation_game_UI(uname, window):
                     if workout_over_time_elapsed < 5:
                         game_object.render_final_results(frame)
                         game_object.render_saving_data(frame)
-                        # if not saved_game_data:
-                        #     game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
-                        #     saved_game_data = True
+                        if not saved_game_data:
+                            game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
+                            saved_game_data = True
                     else:
                         break
         prevTime = curTime
