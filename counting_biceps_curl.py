@@ -4,6 +4,8 @@ then compute the angle to determine whether it is a ready pose or bicep curl pos
 The guidelines are from: https://www.mayoclinic.org/healthy-lifestyle/fitness/multimedia/biceps-curl/vid-20084675#:~:text=Campbell%3A%20To%20do%20a%20biceps,front%20of%20your%20upper%20arm.
 """
 import random
+from datetime import datetime
+
 import cv2
 import mediapipe as mp
 import time
@@ -14,6 +16,8 @@ from tkinter import ttk, messagebox
 import threading
 import playsound
 from scipy.stats import pearsonr
+
+from data_models.biceps_curl_records import BicepsCurlRecord
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -68,6 +72,7 @@ class CountingBicepsCurl:
         self.__ready_pose_ankle_angle = 165  # threshold to determine if the arms are straightened
         self.__lift_angle = 40  # threshold to determine if the dumbbell is raised high enough
         self.__workout_over = False
+        self.workout_duration = 0  # time elapsed in seconds
 
     def userInReadyPose(self, pose_results):
         # pass in the body landmarks and calculate the angle at ankle
@@ -211,7 +216,6 @@ class CountingBicepsCurl:
                                         WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
 
 
-
 def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
     from workout_plan_page import workout_plan_page
     window.destroy()
@@ -223,6 +227,7 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
     workout_over_time_elapsed = 0
     # Flag
     game_started = False
+    saved_game_data = False
     counting_biceps_curl_object_created = False
     failed_to_turn_on_webcam = False
     # Messages to display on screen
@@ -241,6 +246,8 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
     WORKOUT_IS_OVER_fs = 1
     WORKOUT_IS_OVER_th = 1
 
+    game_record = BicepsCurlRecord()
+    cur_datetime = datetime.now()
     while True:
         success, frame = cap.read()
         if not success:
@@ -255,7 +262,6 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
         fps = 1 / (curTime - prevTime)
 
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
-
         if not counting_biceps_curl_object_created:
             cbc_obj = CountingBicepsCurl(set_count, rep_count)
             counting_biceps_curl_object_created = True
@@ -264,14 +270,16 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
                 cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 0, 255), 1)
+                cv2.putText(frame, "Timer: " + str(int(cbc_obj.workout_duration)), (50, 150), cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
                 pose_results = cbc_obj.detect_pose_landmarks(frame)
                 if pose_results.pose_landmarks:
-                    cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 150),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-                    cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 175),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
+                    # cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 150),
+                    #             cv2.FONT_HERSHEY_PLAIN, 1,
+                    #             (255, 0, 255), 1)
+                    # cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 175),
+                    #             cv2.FONT_HERSHEY_PLAIN, 1,
+                    #             (255, 0, 255), 1)
                     if cbc_obj.userInReadyPose(pose_results):
                         cbc_obj.update_counter()
                         cv2.putText(frame, "Set : " + str(cbc_obj.get_current_set_count()) + "/" + str(cbc_obj.get_set_count()), (50, 75),
@@ -318,10 +326,15 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
                     center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
                                                     WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                     cbc_obj.save_data(frame)
+                    if not saved_game_data:
+                        print("Time taken for biceps curl in secs = ", cbc_obj.workout_duration)
+                        game_record.create_new_workout_record(uname, cbc_obj.get_set_count(), cbc_obj.get_rep_count(),
+                                                              cbc_obj.workout_duration, cur_datetime)
+                        saved_game_data = True
                 else:
                     break
-
-
+        if prevTime != 0:
+            cbc_obj.workout_duration += (curTime - prevTime)
         prevTime = curTime
 
         cv2.imshow('Frame', frame)
@@ -329,7 +342,6 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
         if cv2.waitKey(1) & 0xFF == ord('e'):
             msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break
-
     if failed_to_turn_on_webcam:
         msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from tkinter import messagebox
 import playsound
 import cv2
@@ -6,6 +7,8 @@ import time
 import threading
 import numpy as np
 import math
+
+from data_models import PushUpRecord
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -80,7 +83,7 @@ class CountingPushUp:
         self.__left_elbow_angle = 0
         self.__push_up_UP_angle_threshold = 160
         self.__workout_over = False
-
+        self.workout_duration = 0  # time elapsed in seconds
 
     # OLD version, this method only works if the webcam is directly seeing the side of the user
     # def isReadyToPushUp(self, pose_landmarks, prevTime, curTime, W, H):
@@ -288,6 +291,7 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
 
     # Flags
     failed_to_turn_on_webcam = False
+    saved_game_data = False
 
     # Messages to display on screen
     # `fs` means "font scale"
@@ -299,7 +303,9 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     WORKOUT_IS_OVER_fs = 1
     WORKOUT_IS_OVER_th = 1
 
+    game_record = PushUpRecord()
     cpu_obj = CountingPushUp(set_count, rep_count)
+    cur_datetime = datetime.now()
     while True:
         success, frame = cap.read()
         if not success:
@@ -319,6 +325,8 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
         if not cpu_obj.workout_is_over():
             cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
                         cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 0, 255), 1)
+            cv2.putText(frame, "Timer: " + str(int(cpu_obj.workout_duration)), (50, 100), cv2.FONT_HERSHEY_PLAIN, 1,
                         (255, 0, 255), 1)
             cv2.putText(frame, "Set : " + str(cpu_obj.get_current_set_count()) + "/" + str(
                 cpu_obj.get_set_count()), (50, 50),
@@ -369,9 +377,14 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                 center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
                                                 WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                 cpu_obj.save_data(frame)
+                if not saved_game_data:
+                    print("Time taken for Push-up in secs = ", cpu_obj.workout_duration)
+                    game_record.create_new_workout_record(uname, cpu_obj.get_set_count(), cpu_obj.get_rep_count(), cpu_obj.workout_duration, cur_datetime)
+                    saved_game_data = True
             else:
                 break
-
+        if prevTime != 0:
+            cpu_obj.workout_duration += (curTime - prevTime)
         prevTime = curTime
 
         cv2.imshow('Counting push-up', frame)
@@ -379,7 +392,6 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
         if cv2.waitKey(1) & 0xFF == ord('e'):
             msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break
-
     if failed_to_turn_on_webcam:
         msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
     cap.release()
