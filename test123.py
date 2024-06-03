@@ -51,6 +51,25 @@ def print_games_collection():
     for x in collection.find():
         print(x)
 
+def print_workout_exercise_collection():
+    print("Printing collection `workout_exercise`:")
+    collection = mydb["workout_exercise"]
+    for x in collection.find():
+        print(x)
+
+def print_pushup_recs_collection():
+    print("Printing collection `push_up_records`:")
+    collection = mydb["push_up_records"]
+    for x in collection.find():
+        print(x)
+
+def print_bicepscurl_recs_collection():
+    print("Printing collection `biceps_curl_records`:")
+    collection = mydb["biceps_curl_records"]
+    for x in collection.find():
+        print(x)
+
+
 def print_kick_and_catch_match_recs_collection():
     print("Printing collection `kick_and_catch_match_records`:")
     collection = mydb["kick_and_catch_match_records"]
@@ -98,39 +117,9 @@ def update_nested_docs_simple_criteria():
     )
 
 print_users_collection()
-print_games_collection()
-print_yoga_estimation_match_recs_collection()
-def update_nested_docs_complex_criteria():
-    collection4 = mydb.StackOverflow   #collection name= StackOverflow
-    record = {
-        "field1" : "value1",
-        "field2" : "value2",
-        "field3" : {
-            "list" : [
-                {
-                   "content" : "valueA",
-                   "start" : "valueA",
-                   "group" : "valueA"
-                },
-                {
-                   "content" : "valueB",
-                   "start" : "Needs_Updation",
-                   "group" : "valueB"
-                }
-            ]
-        }
-    }
-    collection4.insert_one(record)
-    for data in collection4.find():
-        print("Inserted Data=", data)
+# print_games_collection()
+# print_yoga_estimation_match_recs_collection()
+print_workout_exercise_collection()
+print_pushup_recs_collection()
+print_bicepscurl_recs_collection()
 
-    collection4.update_one(
-        {
-            "field1":"value1" ,
-            "field3.list" :{"$elemMatch" : {"content" : "valueB","group": "valueB" }}
-        },
-        {"$set":{"field3.list.$.start" : "Updated_Value"}}
-    )
-
-    for data in collection4.find():
-        print("Updated Data=", data)
