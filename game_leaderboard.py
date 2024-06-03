@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
-
+from PIL import Image, ImageTk
+from paths_to_images import PATH_TO_SCORE_IMG
 # Sample leaderboard data
 leaderboard_data = {
     "Kick & Catch": [
@@ -24,11 +25,30 @@ def go_back(uname, window):
 
 
 # Function to update leaderboard display
-def update_leaderboard(frame, game):
-    ttk.Label(frame, text=game + " Leaderboard", style="SubHeader.TLabel").pack(pady=10)
+def update_leaderboard(frame, game, rec_width):
+    SCORE_IMG_WIDTH = 35
+    SCORE_IMG_HEIGHT = 35
+    tk.Label(frame, text=game + " Leaderboard").pack(pady=10)
+    score_img = None
     for i, (player, score) in enumerate(leaderboard_data[game][:3]):
-        label = ttk.Label(frame, text=f"{i+1}. {player} - {score}", font=("Arial", 14), style="List.TLabel")
-        label.pack(pady=5)
+        # label = tk.Label(frame, text=f"{i+1}. {player} - {score}", fg="white", bg="gray", font=("Arial", 14), width=label_width)
+        # label.pack(pady=5, side=TOP)
+        rec = tk.Frame(frame, bg="gray", height=35, width=rec_width)
+        rec.pack(pady=5, side=TOP)
+        index_label = tk.Label(rec, text=f"{i+1}. ", fg="white", bg="gray", font=("Arial", 14))
+        index_label.place(x=20, y=3)
+        name_label = tk.Label(rec, text=f"{player}", fg="white", bg="gray", font=("Arial", 14))
+        name_label.place(x=50, y=3)
+        # DK WHY ISNT IT SHOWING THE TROPHY ICON??
+        # score_img = Image.open(PATH_TO_SCORE_IMG)
+        # score_img = score_img.resize((SCORE_IMG_WIDTH, SCORE_IMG_HEIGHT))
+        # score_img = ImageTk.PhotoImage(file=PATH_TO_SCORE_IMG)
+        # img_label = Label(rec, image=score_img)
+        # img_label.place(x=rec_width-130, y=0)
+        score_label = tk.Label(rec, text=f"{str(score)}", fg="white", bg="gray", font=("Arial", 14))
+        score_label.place(x=rec_width-80, y=3)
+        # label = tk.Label(rec, text=f"{i+1}. {player} - {score}", fg="white", bg="gray", font=("Arial", 14))
+        # label.pack(pady=5)
 
 
 def leaderboard_page(uname, window):
@@ -48,8 +68,8 @@ def leaderboard_page(uname, window):
     kick_and_catch_frame = ttk.Frame(notebook)
     yoga_imitation_frame = ttk.Frame(notebook)
     # Update initial leaderboard display
-    update_leaderboard(kick_and_catch_frame, "Kick & Catch")
-    update_leaderboard(yoga_imitation_frame, "Yoga Imitation")
+    update_leaderboard(kick_and_catch_frame, "Kick & Catch", WINDOW_WIDTH-100)
+    update_leaderboard(yoga_imitation_frame, "Yoga Imitation", WINDOW_WIDTH-100)
     notebook.add(kick_and_catch_frame, text="Kick & Catch")
     notebook.add(yoga_imitation_frame, text="Yoga Imitation")
 
