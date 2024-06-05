@@ -1,10 +1,6 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
-from fitness_games_page import fitness_games_page
-from guides_page import guides_page
-from workout_plan_page import workout_plan_page
-import pymongo
 from PIL import Image, ImageTk
 from pymongo import errors
 from data_models import User

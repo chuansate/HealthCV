@@ -27,7 +27,10 @@ class User:
             "uname": uname,
             "pwd": pwd,
             "created_time": acc_created_time,
-            "best_records": best_records
+            "best_records": best_records,
+            "XP": None,
+            "fitness_goal": None,
+            "fitness_level": None
         })
         client.close()
 
