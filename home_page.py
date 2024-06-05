@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
-from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PROFILE_IMG
+from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PROFILE_IMG, PATH_TO_TASKS_IMG
 from tkinter import ttk, messagebox
 
 
@@ -36,7 +36,7 @@ def home_page(uname):
     from workout_plan_page import workout_plan_page
     from profile_page import profile_page
     from data_models import User
-
+    from daily_tasks_page import daily_tasks_page
     if User().user_hasnt_filled_in_details(uname):
         # ask them to fill in some details about them
         # Create the main window
@@ -44,7 +44,6 @@ def home_page(uname):
         root.title("First time login")
         root.geometry("300x200")
         root.resizable(False, False)
-        root
         # Fitness goals options
         goals = ["Weight Loss", "Muscle Gain", "Endurance", "Flexibility"]
 
@@ -95,6 +94,13 @@ def home_page(uname):
         profile_button = tk.Button(window, image=profile_img,
                                    command=lambda: profile_page(uname, window))
         profile_button.place(x=30, y=30)
+
+        tasks_img = Image.open(PATH_TO_TASKS_IMG)
+        tasks_img = tasks_img.resize((PROFILE_ICON_WIDTH, PROFILE_ICON_HEIGHT))
+        tasks_img = ImageTk.PhotoImage(tasks_img, master=window)
+        tasks_button = tk.Button(window, image=tasks_img,
+                                   command=lambda: daily_tasks_page(uname, window))
+        tasks_button.place(x=30, y=80)
         # Three buttons: Fitness games, Guides, Workout plan (setting sets and reps, then record the data on everyday)
         # Adding a title label
         title_label = tk.Label(window, text="Welcome back, " + uname + "!", font=("Helvetica", 16, "bold"), bg='#f0f0f0')

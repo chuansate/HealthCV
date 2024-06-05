@@ -4,8 +4,12 @@ Storing paths to icons and images used in Tkinter windows for the HealthCV syste
 # For the background of all windows
 PATH_TO_BACKGROUND_IMG = "./icons/login_background.png"
 
-# For the home pahe
+# For the home page
 PATH_TO_PROFILE_IMG = "./icons/profile_icon.png"
+PATH_TO_TASKS_IMG = "./icons/daily_task_icon.png"
+
+# For the daily tasks page
+PATH_TO_TICK_IMG = "./icons/tick_icon.png"
 
 # For the fitness games
 PATH_TO_KICK_AND_CATCH_BG_IMG = "./icons/kick_and_catch_game.png"
