@@ -51,5 +51,35 @@ class User:
         client.close()
         return best_record
 
+    def user_hasnt_filled_in_details(self, uname):
+        """
+        Check the collection `users` to see if the fitness goal and fitness level are still NULL
+        :return:
+        """
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        user_doc = users_col.find_one({"uname": uname})
+        flag = False
+        if user_doc is not None:
+            if user_doc["XP"] is None and user_doc["fitness_goal"] is None and user_doc["fitness_level"] is None:
+                flag = True
+        else:
+            raise Exception("The username couldn't been found!")
+        client.close()
+        return flag
+
+    def filling_in_fitness_goal_and_level(self, uname, fitness_goal, fitness_level):
+        """
+        Check the collection `users` to see if the fitness goal and fitness level are still NULL
+        :return:
+        """
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        new_values = {"$set": {"XP": 0, "fitness_goal": fitness_goal, "fitness_level": fitness_level}}
+        users_col.update_one({"uname": uname}, new_values)
+        client.close()
+
 
 

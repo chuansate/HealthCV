@@ -2,15 +2,8 @@ import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
 from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PROFILE_IMG
+from tkinter import ttk, messagebox
 
-
-def user_hasnt_filled_in_details():
-    """
-    Check the collection `users` to see if the fitness goal and fitness level are still NULL
-    :return:
-    """
-    START CHECKING HERE!
-    return False
 
 def logout(window):
     from main import login_page
@@ -18,14 +11,69 @@ def logout(window):
     login_page()
 
 
+def submit(uname, first_time_login_window, goal_var, level_var):
+    from data_models import User
+    goal = goal_var.get()
+    level = level_var.get()
+
+    if goal != "" and level != "":
+        print(f"Fitness Goal: {goal}")
+        print(f"Current Fitness Level: {level}")
+        # write into database
+        try:
+            User().filling_in_fitness_goal_and_level(uname, goal, level)
+            first_time_login_window.destroy()
+            home_page(uname)
+        except Exception:
+            msg = messagebox.showinfo("Warning", "Failed to access the database, please try again.")
+    else:
+        msg = messagebox.showinfo("Warning", "Please select your fitness goal and fitness level.")
+
+
 def home_page(uname):
     from fitness_games_page import fitness_games_page
     from guides_page import guides_page
     from workout_plan_page import workout_plan_page
     from profile_page import profile_page
-    if user_hasnt_filled_in_details():
+    from data_models import User
+
+    if User().user_hasnt_filled_in_details(uname):
         # ask them to fill in some details about them
-        pass
+        # Create the main window
+        root = tk.Tk()
+        root.title("First time login")
+        root.geometry("300x200")
+        root.resizable(False, False)
+        root
+        # Fitness goals options
+        goals = ["Weight Loss", "Muscle Gain", "Endurance", "Flexibility"]
+
+        # Current fitness levels options
+        levels = ["Beginner", "Intermediate", "Advanced"]
+
+        # StringVars to hold the values
+        goal_var = tk.StringVar()
+        level_var = tk.StringVar()
+
+        # Labels
+        tk.Label(root, text="Select Your Fitness Goal:").pack(pady=5)
+
+        # Combobox for fitness goals
+        goal_combobox = ttk.Combobox(root, textvariable=goal_var, values=goals, state="readonly")
+        goal_combobox.pack(pady=5)
+
+        tk.Label(root, text="Select Your Current Fitness Level:").pack(pady=5)
+
+        # Combobox for fitness levels
+        level_combobox = ttk.Combobox(root, textvariable=level_var, values=levels, state="readonly")
+        level_combobox.pack(pady=5)
+
+        # Submit button
+        submit_button = tk.Button(root, text="Submit", command=lambda: submit(uname, root, goal_var, level_var))
+        submit_button.pack(pady=10)
+
+        # Start the main event loop
+        root.mainloop()
     else:
         WINDOW_WIDTH = 700
         WINDOW_HEIGHT = 400
