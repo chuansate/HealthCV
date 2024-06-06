@@ -7,12 +7,9 @@ PATH_TO_BACKGROUND_IMG = "./icons/login_background.png"
 # For the home page
 PATH_TO_PROFILE_IMG = "./icons/profile_icon.png"
 PATH_TO_TASKS_IMG = "./icons/daily_task_icon.png"
-
-# For the daily tasks page
 PATH_TO_TICK_IMG = "./icons/tick_icon.png"
-
-# For the burned calories page
 PATH_TO_BURNED_CALORIES_IMG = "./icons/burned_calories_icon.png"
+PATH_TO_PERFORMANCE_REPORT_IMG = "./icons/performance_report.png"
 
 # For the fitness games
 PATH_TO_KICK_AND_CATCH_BG_IMG = "./icons/kick_and_catch_game.png"
