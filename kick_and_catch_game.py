@@ -17,6 +17,7 @@ import playsound
 
 from Buttons import ButtonImage
 from data_models.kick_and_catch_match_records import KickAndCatchMatchRecord
+from data_models.burned_calories import BurnedCalories
 from kick_and_catch_game_objects import *
 
 
@@ -89,12 +90,15 @@ class KickAndCatchGame:
 
     def __init__(self, num_objects, stay_duration):
         self.__total_game_score = 0
-        self.__total_game_duration = 60  # the game lasts for this long, in seconds
+        self.total_game_duration = 60  # the game lasts for this long, in seconds
         self.__game_duration_elapsed = 0
         self.__game_over = False
         self.__stay_duration = stay_duration  # how long the objects stay on the screen
         self.__max_num_objects_on_frame = num_objects
         self.__current_objects_on_frame = []
+        self.__num_punches = 0
+        self.__num_kicks = 0
+        self.calories_burned_per_min = 13
 
     def get_total_game_score(self):
         return self.__total_game_score
@@ -103,12 +107,12 @@ class KickAndCatchGame:
         frame_width = webcam_frame.shape[1]
         frame_height = webcam_frame.shape[0]
         self.__game_duration_elapsed += (currentTime - previousTime)
-        if self.__game_duration_elapsed > self.__total_game_duration:
+        if self.__game_duration_elapsed > self.total_game_duration:
             self.__game_over = True
 
         else:
             cv2.putText(webcam_frame, "Time left: " + str(
-                int(round(self.__total_game_duration - self.__game_duration_elapsed, 0))),
+                int(round(self.total_game_duration - self.__game_duration_elapsed, 0))),
                         (frame_width // 2 - 206 // 2, 25),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
             webcam_frame.flags.writeable = False
@@ -162,12 +166,14 @@ class KickAndCatchGame:
                         if obj.isPunched(left_index_finger_tip_x, left_index_finger_tip_y):
                             thread = threading.Thread(target=self.play_audio_for_breaking_rock)
                             thread.start()
+                            self.__num_punches += 1
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
                         if obj.isPunched(right_index_finger_tip_x, right_index_finger_tip_y):
                             thread = threading.Thread(target=self.play_audio_for_breaking_rock)
                             thread.start()
+                            self.__num_punches += 1
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
@@ -176,12 +182,14 @@ class KickAndCatchGame:
                         if obj.isKicked(left_foot_index_x, left_foot_index_y):
                             thread = threading.Thread(target=self.play_audio_for_breaking_rock)
                             thread.start()
+                            self.__num_kicks += 1
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
                         if obj.isKicked(right_foot_index_x, right_foot_index_y):
                             thread = threading.Thread(target=self.play_audio_for_breaking_rock)
                             thread.start()
+                            self.__num_kicks += 1
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
@@ -271,6 +279,12 @@ class KickAndCatchGame:
         if self.__total_game_score > 0:
             self.__total_game_score -= 1
 
+    def get_num_punches(self):
+        return self.__num_punches
+
+    def get_num_kicks(self):
+        return self.__num_kicks
+
 
 def render_kick_and_catch_game_UI(uname, window):
     window.destroy()
@@ -308,6 +322,7 @@ def render_kick_and_catch_game_UI(uname, window):
     user = User()
     best_record = user.get_best_record(uname, "Kick-And-Catch")
     game_record = KickAndCatchMatchRecord()
+    burned_calories_table = BurnedCalories()
     cur_datetime = datetime.now()
     if best_record is None:
         print("Either username doesnt exist or the game doesnt exist!")
@@ -382,6 +397,11 @@ def render_kick_and_catch_game_UI(uname, window):
                         game_object.save_game_data(frame)
                         if not saved_game_data:
                             game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
+                            # add 10 XP into `users`, then write the total calories burnt
+                            total_burned_calories = int(game_object.calories_burned_per_min * game_object.total_game_duration/60)
+                            cur_datetime = datetime.now()
+                            cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
+                            burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                             saved_game_data = True
                     else:
                         break
