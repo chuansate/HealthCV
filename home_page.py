@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
-from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PROFILE_IMG, PATH_TO_TASKS_IMG
+
+from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PROFILE_IMG, PATH_TO_TASKS_IMG, PATH_TO_BURNED_CALORIES_IMG
 from tkinter import ttk, messagebox
 
 
@@ -31,6 +32,7 @@ def submit(uname, first_time_login_window, goal_var, level_var):
 
 
 def home_page(uname):
+    from burnt_calories_page import burnt_calories_page
     from fitness_games_page import fitness_games_page
     from guides_page import guides_page
     from workout_plan_page import workout_plan_page
@@ -101,6 +103,13 @@ def home_page(uname):
         tasks_button = tk.Button(window, image=tasks_img,
                                    command=lambda: daily_tasks_page(uname, window))
         tasks_button.place(x=30, y=80)
+
+        calories_img = Image.open(PATH_TO_BURNED_CALORIES_IMG)
+        calories_img = calories_img.resize((PROFILE_ICON_WIDTH, PROFILE_ICON_HEIGHT))
+        calories_img = ImageTk.PhotoImage(calories_img, master=window)
+        calories_button = tk.Button(window, image=calories_img,
+                                 command=lambda: burnt_calories_page(uname, window))
+        calories_button.place(x=30, y=130)
         # Three buttons: Fitness games, Guides, Workout plan (setting sets and reps, then record the data on everyday)
         # Adding a title label
         title_label = tk.Label(window, text="Welcome back, " + uname + "!", font=("Helvetica", 16, "bold"), bg='#f0f0f0')

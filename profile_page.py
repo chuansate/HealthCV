@@ -27,6 +27,7 @@ def profile_page(uname, window):
     window.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     window.title("Profile page")
     window.resizable(False, False)
+    # display username, joined date, user level, current fitness level, and fitness goal
     bg_img = Image.open(PATH_TO_BACKGROUND_IMG)
     bg_img = bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
     bg_img = ImageTk.PhotoImage(bg_img, master=window)
