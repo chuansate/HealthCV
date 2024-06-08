@@ -34,6 +34,16 @@ class User:
         })
         client.close()
 
+    def add_XP_to_user(self, uname, XP_increment):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        users_col.update_one(
+            {"uname": uname},
+            {"$inc": {"XP": XP_increment}}
+        )
+        client.close()
+
     def get_best_record(self, uname, game_name):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]

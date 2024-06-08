@@ -99,6 +99,7 @@ class KickAndCatchGame:
         self.__num_punches = 0
         self.__num_kicks = 0
         self.calories_burned_per_min = 13
+        self.XP = 10
 
     def get_total_game_score(self):
         return self.__total_game_score
@@ -402,6 +403,7 @@ def render_kick_and_catch_game_UI(uname, window):
                             cur_datetime = datetime.now()
                             cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
                             burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
+                            user.add_XP_to_user(uname, game_object.XP)
                             saved_game_data = True
                     else:
                         break
