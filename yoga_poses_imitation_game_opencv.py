@@ -17,7 +17,7 @@ import os
 import csv
 import math
 
-from data_models import User, YogaImitationMatchRecord
+from data_models import User, YogaImitationMatchRecord, BurnedCalories
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -96,6 +96,9 @@ class YogaPoseImitationGame:
         self.__hold_pose_period = 3  # the user has to hold the yoga pose for this long, in seconds
         self.__hold_pose_time_elapsed = 0
         self.__game_over = False
+        self.workout_duration = 0  # time elapsed in seconds
+        self.XP = 10
+        self.calories_burned_per_min = 2.5
 
     def read_sample_yoga_poses_csv(self):
         file = open("./yoga_poses_imitation_game_images/sample_yoga_poses_landmarks.csv")
@@ -336,13 +339,14 @@ def render_yoga_poses_imitation_game_UI(uname, window):
 
     # Flag
     game_started = False
-    game_object_created = False
     failed_to_turn_on_webcam = False
     saved_game_data = False
 
     user = User()
     best_record = user.get_best_record(uname, "Yoga Imitation")
     game_record = YogaImitationMatchRecord()
+    burned_calories_table = BurnedCalories()
+    game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
     cur_datetime = datetime.now()
     if best_record is None:
         print("Either username doesnt exist or the game doesnt exist!")
@@ -377,41 +381,53 @@ def render_yoga_poses_imitation_game_UI(uname, window):
                     if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
                         game_started = True
         else:
-            if not game_object_created:
-                game_object = YogaPoseImitationGame(YOGA_POSES_NAMES_DIFFICULTIES, YOGA_POSES_FILE_NAMES, YOGA_POSES_PATH)
-                game_object_created = True
-            else:
-                if not game_object.is_game_over():
-                    cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-                    cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50),
-                                cv2.FONT_HERSHEY_PLAIN, 1.2,
-                                (255, 0, 255), 1)
-                    cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 100),
-                                cv2.FONT_HERSHEY_PLAIN, 1.2,
-                                (255, 0, 255), 1)
+            if not game_object.is_game_over():
+                if prevTime != 0:
+                    game_object.workout_duration += (curTime - prevTime)
+                cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
+                cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50),
+                            cv2.FONT_HERSHEY_PLAIN, 1.2,
+                            (255, 0, 255), 1)
+                cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 100),
+                            cv2.FONT_HERSHEY_PLAIN, 1.2,
+                            (255, 0, 255), 1)
+                cv2.putText(frame, "Timer: " + str(int(game_object.workout_duration)), (frame_width - 150, 125),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 0, 255), 1)
 
-                    cur_similarity_score = game_object.evaluate_user_pose(frame)
-                    game_object.display_sample_yoga_pose(frame)
-                    if cur_similarity_score > game_object.get_similarity_threshold():
-                        game_object.count_down(frame, curTime, prevTime)
-                    else:
-                        game_object.set_hold_pose_time_elapsed(0)
+                cur_similarity_score = game_object.evaluate_user_pose(frame)
+                game_object.display_sample_yoga_pose(frame)
+                if cur_similarity_score > game_object.get_similarity_threshold():
+                    game_object.count_down(frame, curTime, prevTime)
                 else:
-                    workout_over_time_elapsed += (curTime - prevTime)
-                    if workout_over_time_elapsed < 5:
-                        game_object.render_final_results(frame)
-                        game_object.render_saving_data(frame)
-                        if not saved_game_data:
-                            game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime)
-                            saved_game_data = True
-                    else:
-                        break
+                    game_object.set_hold_pose_time_elapsed(0)
+            else:
+                workout_over_time_elapsed += (curTime - prevTime)
+                if workout_over_time_elapsed < 5:
+                    game_object.render_final_results(frame)
+                    game_object.render_saving_data(frame)
+                    if not saved_game_data:
+                        game_object.workout_duration = int(game_object.workout_duration)
+                        print("Time taken for Yoga Imitation in secs = ", game_object.workout_duration)
+                        game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime, game_object.workout_duration)
+                        total_burned_calories = int(
+                            game_object.calories_burned_per_min * game_object.workout_duration / 60)
+                        cur_datetime = datetime.now()
+                        print("Burned calories = ", total_burned_calories)
+                        cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                            cur_datetime.minute)
+                        burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
+                        user.add_XP_to_user(uname, game_object.XP)
+                        saved_game_data = True
+                else:
+                    break
+
         prevTime = curTime
         cv2.imshow('Frame', frame)
         if cv2.waitKey(1) & 0xFF == ord('e'):  # which key comes first then it responds faster to the user input
-            if game_started and game_object_created:
+            if game_started:
                 msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
                 game_object.set_current_yoga_pose_index(
                     game_object.get_current_yoga_pose_index() + len(YOGA_POSES_NAMES_DIFFICULTIES))

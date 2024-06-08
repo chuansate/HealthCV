@@ -7,7 +7,7 @@ class YogaImitationMatchRecord:
     def __init__(self):
         pass
 
-    def create_new_match_record(self, uname, score, datetime):
+    def create_new_match_record(self, uname, score, datetime, complete_duration):
         print("Saving new match record in the backend for yoga imitation game...")
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
@@ -19,7 +19,8 @@ class YogaImitationMatchRecord:
             yoga_match_recs_col.insert_one({
                 "user_id": user_doc["_id"],
                 "score": score,
-                "datetime": datetime
+                "datetime": datetime,
+                "complete_duration": complete_duration
             })
             if score > user_doc["best_records"][str(self.get_game_id())]:
                 self.update_best_record(uname, score)
