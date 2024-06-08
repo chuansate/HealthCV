@@ -17,6 +17,7 @@ import threading
 import playsound
 from scipy.stats import pearsonr
 
+from data_models import User, BurnedCalories
 from data_models.biceps_curl_records import BicepsCurlRecord
 
 
@@ -73,6 +74,8 @@ class CountingBicepsCurl:
         self.__lift_angle = 40  # threshold to determine if the dumbbell is raised high enough
         self.__workout_over = False
         self.workout_duration = 0  # time elapsed in seconds
+        self.calories_burned_per_min = 4.5
+        self.XP = 10
 
     def userInReadyPose(self, pose_results):
         # pass in the body landmarks and calculate the angle at ankle
@@ -248,6 +251,8 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
 
     game_record = BicepsCurlRecord()
     cur_datetime = datetime.now()
+    user = User()
+    burned_calories_table = BurnedCalories()
     while True:
         success, frame = cap.read()
         if not success:
@@ -327,9 +332,18 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
                                                     WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                     cbc_obj.save_data(frame)
                     if not saved_game_data:
+                        cbc_obj.workout_duration = int(cbc_obj.workout_duration)
                         print("Time taken for biceps curl in secs = ", cbc_obj.workout_duration)
                         game_record.create_new_workout_record(uname, cbc_obj.get_set_count(), cbc_obj.get_rep_count(),
                                                               cbc_obj.workout_duration, cur_datetime)
+                        total_burned_calories = int(
+                            cbc_obj.calories_burned_per_min * cbc_obj.workout_duration / 60)
+                        cur_datetime = datetime.now()
+                        print("Burned calories = ", total_burned_calories)
+                        cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                            cur_datetime.minute)
+                        burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
+                        user.add_XP_to_user(uname, cbc_obj.XP)
                         saved_game_data = True
                 else:
                     break
