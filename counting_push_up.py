@@ -8,7 +8,7 @@ import threading
 import numpy as np
 import math
 
-from data_models import PushUpRecord
+from data_models import PushUpRecord, User, BurnedCalories
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -81,43 +81,11 @@ class CountingPushUp:
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
-        self.__push_up_UP_angle_threshold = 160
+        self.__push_up_UP_angle_threshold = 150
         self.__workout_over = False
         self.workout_duration = 0  # time elapsed in seconds
-
-    # OLD version, this method only works if the webcam is directly seeing the side of the user
-    # def isReadyToPushUp(self, pose_landmarks, prevTime, curTime, W, H):
-    #     """
-    #     The logic to determine a user is in ready pose:
-    #     shoulder_x > hip_x AND
-    #     hip_x > knee_x AND
-    #     knee_x > ankle_x AND
-    #     shoulder_y < hip_y AND (maybe no need to care about the y-coor first becoz push-up DOWN might not obey this rule)
-    #     hip_y < knee_y AND
-    #     knee_y < ankle_y AND
-    #     the correlation between the 4 points (shoulder, hip, knee, and ankle) is high enuf
-    #     """
-    #     # print(curTime, prevTime)
-    #     self.__ready_pose_hold_elapsed += (curTime - prevTime)
-    #     # print("elapsed = ", self.__ready_pose_hold_elapsed)
-    #     # Since the frame has been flipped initially, so to detect the left shoulder, we have to extract the right shoulder
-    #     left_shoulder_x = pose_landmarks[CountingPushUp.features[0]].x * W
-    #     left_hip_x = pose_landmarks[CountingPushUp.features[6]].x * W
-    #     left_knee_x = pose_landmarks[CountingPushUp.features[8]].x * W
-    #     left_ankle_x = pose_landmarks[CountingPushUp.features[10]].x * W
-    #     left_shoulder_y = pose_landmarks[CountingPushUp.features[0]].y * H
-    #     left_hip_y = pose_landmarks[CountingPushUp.features[6]].y * H
-    #     left_knee_y = pose_landmarks[CountingPushUp.features[8]].y * H
-    #     left_ankle_y = pose_landmarks[CountingPushUp.features[10]].y * H
-    #     grad_left = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
-    #     grad_left = abs(grad_left)
-    #
-    #     if left_shoulder_x > left_hip_x and left_hip_x > left_knee_x and left_knee_x > left_ankle_x and grad_left < self.__grad_left_UP_threshold:
-    #         self.__user_in_ready_pose = True
-    #         return True
-    #     else:
-    #         self.__user_in_ready_pose = False
-    #         return False
+        self.calories_burned_per_min = 7
+        self.XP = 10
 
     def isReadyToPushUp(self, pose_landmarks, prevTime, curTime):
         """
@@ -197,27 +165,6 @@ class CountingPushUp:
         angle_radian = math.acos((np.dot(vec1, vec2)) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
         return int(round(math.degrees(angle_radian), 0))
 
-    # OLD VERSION: this only works when the webcam is facing the user
-    # def update_counter(self, pose_landmarks, W, H):
-    #     left_shoulder_x = pose_landmarks[CountingPushUp.features[0]].x * W
-    #     left_hip_x = pose_landmarks[CountingPushUp.features[6]].x * W
-    #     left_knee_x = pose_landmarks[CountingPushUp.features[8]].x * W
-    #     left_ankle_x = pose_landmarks[CountingPushUp.features[10]].x * W
-    #     left_shoulder_y = pose_landmarks[CountingPushUp.features[0]].y * H
-    #     left_hip_y = pose_landmarks[CountingPushUp.features[6]].y * H
-    #     left_knee_y = pose_landmarks[CountingPushUp.features[8]].y * H
-    #     left_ankle_y = pose_landmarks[CountingPushUp.features[10]].y * H
-    #     grad_left = (left_shoulder_y - left_ankle_y) / (left_shoulder_x - left_ankle_x)
-    #     print("grad_left when push-up UP = ", grad_left)
-    #     grad_left = abs(grad_left)
-    #
-    #     if self.__user_status == 1 and left_shoulder_x > left_hip_x and left_hip_x > left_knee_x and left_knee_x > left_ankle_x and grad_left < self.__grad_left_DOWN_threshold:
-    #         self.__user_status = 0
-    #
-    #     elif self.__user_status == 0 and left_shoulder_x > left_hip_x and left_hip_x > left_knee_x and left_knee_x > left_ankle_x and grad_left < self.__grad_left_UP_threshold:
-    #         self.__user_status = 1  # push-up UP
-    #         self.__push_up_count += 1
-
     def update_counter(self, pose_landmarks):
         # pass in the body landmarks and calculate the angle at ankle
         # keyword: calculate the angle betw 2 vectors
@@ -247,7 +194,8 @@ class CountingPushUp:
     def play_audio_for_counter(self):
         try:
             playsound.playsound(CountingPushUp.path_to_audios + str(self.__push_up_count) + ".mp3")
-        except:
+        except Exception as e:
+            print(e)
             print("Probably the number of counter exceeds 20!")
 
     def get_user_status(self):
@@ -306,6 +254,8 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     game_record = PushUpRecord()
     cpu_obj = CountingPushUp(set_count, rep_count)
     cur_datetime = datetime.now()
+    user = User()
+    burned_calories_table = BurnedCalories()
     while True:
         success, frame = cap.read()
         if not success:
@@ -357,8 +307,6 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                                     cv2.FONT_HERSHEY_PLAIN, 1,
                                     (255, 0, 255), 1)
                 else:
-                    # cpu_obj.reset_ready_pose_hold_elapsed()
-                    # cpu_obj.reset_user_status()
                     center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE,
                                                     CountingPushUp.GET_INTO_READY_POSE_fs,
                                                     CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
@@ -370,7 +318,6 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                 # Fails to detect the user
                 center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
                                                 USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
-                # cpu_obj.reset_user_status()
         else:
             workout_over_time_elapsed += (curTime - prevTime)
             if workout_over_time_elapsed < 5:
@@ -378,8 +325,17 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                                                 WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                 cpu_obj.save_data(frame)
                 if not saved_game_data:
+                    cpu_obj.workout_duration = int(cpu_obj.workout_duration)
                     print("Time taken for Push-up in secs = ", cpu_obj.workout_duration)
                     game_record.create_new_workout_record(uname, cpu_obj.get_set_count(), cpu_obj.get_rep_count(), cpu_obj.workout_duration, cur_datetime)
+                    total_burned_calories = int(
+                        cpu_obj.calories_burned_per_min * cpu_obj.workout_duration / 60)
+                    cur_datetime = datetime.now()
+                    print("Burned calories = ", total_burned_calories)
+                    cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                        cur_datetime.minute)
+                    burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
+                    user.add_XP_to_user(uname, cpu_obj.XP)
                     saved_game_data = True
             else:
                 break
@@ -398,73 +354,3 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     cv2.destroyAllWindows()
     from workout_plan_page import workout_plan_page
     workout_plan_page(uname, None)
-
-        # OLD LOGIC:
-        # if results.pose_landmarks:
-        #     # if pose landmarks are detected
-        #     # extract the x-, y-, and z-coordinates of the 22 body landmarks as features from the frame
-        #     frame_features = []
-        #     frame_features_dict = {}
-        #     mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-        #                               landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
-        #     for index, ft in enumerate(features):
-        #         landmark_coordinates = results.pose_landmarks.landmark[ft]
-        #         frame_features_dict[feature_names[index]] = [landmark_coordinates.x, landmark_coordinates.y,
-        #                                                      landmark_coordinates.z]
-        #     frame_features_dict = normalize_pose_landmarks(frame_features_dict)
-        #
-        #     for normalized_coordinates in frame_features_dict.values():
-        #         for normalized_coor in normalized_coordinates:
-        #             frame_features.append(normalized_coor)
-        #
-        #     frame_features = np.array(frame_features)
-        #     predicted_pose_text_position = (10, 150)
-        #     readyToPushUp = isReadyToPushUp(frame_features)
-        #
-        #     # while readyToPushUp:
-        #     #     # The user has to hold the ready-pose for 3 seconds, then the counter starts
-        #     #     # start counting down 3...2...1... then the counting of repetition starts
-        #     #     # predict it is a UP or DOWN
-        #     #
-        #     #     y_pred = pushup_up_down_classifier.predict(tf.expand_dims(frame_features, axis=0), verbose=0)
-        #     #     if y_pred == 1:  # push-up UP
-        #     #         if y_pred != current_pushup_state:
-        #     #             count_pushup += 1
-        #     #             current_pushup_state = y_pred
-        #     #
-        #     #     else:
-        #     #         pass
-        #     if readyToPushUp == 1:
-        #         ready_time_elapsed += (curTime - prevTime)
-        #         if ready_time_elapsed >= 3:
-        #             cv2.putText(frame, "Pushup Count: 0", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
-        #                         FONT_SCALE, (255, 0, 255),
-        #                         1)
-        #             cv2.putText(frame, "Start!",
-        #                         (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
-        #                         cv2.FONT_HERSHEY_PLAIN,
-        #                         FONT_SCALE, (255, 0, 255),
-        #                         1)
-        #         else:
-        #             cv2.putText(frame, "Push-up Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
-        #                         FONT_SCALE, (255, 0, 255),
-        #                         1)
-        #             cv2.putText(frame, "Counting down: " + str(3 - int(ready_time_elapsed)),
-        #                         (predicted_pose_text_position[0], predicted_pose_text_position[1] + 30),
-        #                         cv2.FONT_HERSHEY_PLAIN,
-        #                         FONT_SCALE, (255, 0, 255),
-        #                         1)
-        #
-        #     else:
-        #         ready_time_elapsed = 0
-        #         cv2.putText(frame, "Push-up Non-Ready Pose", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN, FONT_SCALE,
-        #                     (255, 0, 255), 1)
-        #     cv2.imshow('Counting push-up', frame)
-        # else:
-        #     cv2.putText(frame, "No person detected!", predicted_pose_text_position, cv2.FONT_HERSHEY_PLAIN,
-        #                 FONT_SCALE,
-        #                 (255, 0, 255), 1)
-        #     cv2.imshow('Counting push-up', frame)
-        # prevTime = curTime
-        # if cv2.waitKey(10) & 0xFF == ord('q'):
-        #     break
