@@ -58,6 +58,26 @@ def validate_register_credentials(entered_uname, entered_pwd):
             msg = messagebox.showinfo("Warning", "Duplicate username, try again.")
 
 
+def show(entry, show_button):
+    entry.configure(show='')
+    show_button.configure(command=lambda: hide(entry, show_button), text='hide password')
+
+
+def hide(entry, show_button):
+    entry.configure(show='*')
+    show_button.configure(command=lambda: show(entry, show_button), text='show password')
+
+
+def show_reg(entry, show_button):
+    entry.configure(show='')
+    show_button.configure(command=lambda: hide_reg(entry, show_button), text='hide password')
+
+
+def hide_reg(entry, show_button):
+    entry.configure(show='*')
+    show_button.configure(command=lambda: show_reg(entry, show_button), text='show password')
+
+
 def login_page():
     WINDOW_WIDTH = 700
     WINDOW_HEIGHT = 400
@@ -84,11 +104,14 @@ def login_page():
     uname_tf.grid(row=0, column=1, pady=5)
     pwd_label = ttk.Label(tab1, text="Password: ")
     pwd_label.grid(row=1, column=0, pady=5)
-    pwd_tf = Entry(tab1)
+    pwd_tf = Entry(tab1, show="*")
     pwd_tf.grid(row=1, column=1, pady=5)
+    show_button = Button(tab1, text='show password',
+                        command=lambda: show(pwd_tf, show_button))
+    show_button.grid(row=2, column=0, pady=5, columnspan=2)
     login_but = ttk.Button(tab1, text="Login",
                            command=lambda: validate_login_credentials(window, uname_tf.get(), pwd_tf.get()))
-    login_but.grid(row=2, column=0, pady=5, columnspan=2)
+    login_but.grid(row=3, column=0, pady=5, columnspan=2)
     notebook.add(tab1, text="Login")
     # Registration tab
     tab2 = ttk.Frame(notebook)
@@ -98,10 +121,13 @@ def login_page():
     new_uname_tf.grid(row=0, column=1, pady=5)
     new_pwd_label = ttk.Label(tab2, text="New Password: ")
     new_pwd_label.grid(row=1, column=0, pady=5)
-    new_pwd_tf = Entry(tab2)
+    new_pwd_tf = Entry(tab2, show="*")
     new_pwd_tf.grid(row=1, column=1, pady=5)
+    show_button_reg = Button(tab2, text='show password',
+                        command=lambda: show_reg(new_pwd_tf, show_button_reg))
+    show_button_reg.grid(row=2, column=0, pady=5, columnspan=2)
     register_but = ttk.Button(tab2, text="Register", command=lambda: validate_register_credentials(new_uname_tf.get(), new_pwd_tf.get()))
-    register_but.grid(row=2, column=0, pady=5, columnspan=2)
+    register_but.grid(row=3, column=0, pady=5, columnspan=2)
     notebook.add(tab2, text="Registration")
     notebook.pack()
     window.mainloop()
