@@ -92,7 +92,7 @@ class YogaPoseImitationGame:
         self.__current_yoga_pose_index = 0
         self.__sample_yoga_poses_landmarks = self.read_sample_yoga_poses_csv()
         self.__difficulty_levels = {0: "Beginner", 1: "Intermediate", 2: "Advanced"}
-        self.__similarity_threshold = 0.5  # once the similarity exceeds this threshold, then timer starts counting down
+        self.__similarity_threshold = 0.6  # once the similarity exceeds this threshold, then timer starts counting down
         self.__hold_pose_period = 3  # the user has to hold the yoga pose for this long, in seconds
         self.__hold_pose_time_elapsed = 0
         self.__game_over = False
