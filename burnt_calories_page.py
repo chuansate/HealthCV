@@ -114,7 +114,7 @@ class BurntCaloriesPage:
 
             # Create the plot
             fig, ax = plt.subplots()
-            plt.ylim(0, 1000)
+            plt.ylim(0, 500)
             ax.plot(dates, daily_calories, marker='o', linestyle='-', color='b')
             ax.set_title(f"Daily Burned Calories for {selected_date.strftime('%B %Y')}")
             ax.set_xlabel("Day of Date")

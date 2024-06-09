@@ -15,6 +15,18 @@ class User:
         client.close()
         return found_doc
 
+    def save_profile_page(self, uname, new_fitness_goal, new_fitness_level):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        query = {"uname": uname}
+        try:
+            users_col.update_one(query, {"$set": {"fitness_goal": new_fitness_goal, "fitness_level": new_fitness_level}})
+        except Exception as e:
+            print(e)
+            raise UserWarning("Failed to update profile!")
+        client.close()
+
     def create_new_user(self, uname, pwd, acc_created_time):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
