@@ -11,6 +11,13 @@ PATH_TO_TICK_IMG = "./icons/tick_icon.png"
 PATH_TO_BURNED_CALORIES_IMG = "./icons/burned_calories_icon.png"
 PATH_TO_PERFORMANCE_REPORT_IMG = "./icons/performance_report.png"
 
+# For the profile page
+PATH_TO_LEVEL_1_IMG = "./icons/level_1.png"
+PATH_TO_LEVEL_2_IMG = "./icons/level_2.png"
+PATH_TO_LEVEL_3_IMG = "./icons/level_3.png"
+PATH_TO_LEVEL_4_IMG = "./icons/level_4.png"
+PATH_TO_LEVEL_5_IMG = "./icons/level_5.png"
+
 # For the fitness games
 PATH_TO_KICK_AND_CATCH_BG_IMG = "./icons/kick_and_catch_game.png"
 PATH_TO_YOGA_IMITATION_BG_IMG = "./icons/yoga_imitation_game.png"

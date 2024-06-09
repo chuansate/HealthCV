@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
-from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_PUSH_UP_ICON, PATH_TO_BICEPS_CURL_ICON
+from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_LEVEL_1_IMG, PATH_TO_LEVEL_2_IMG, PATH_TO_LEVEL_3_IMG, PATH_TO_LEVEL_4_IMG, PATH_TO_LEVEL_5_IMG
 from data_models import User
 # Define options for dropdown menus
 fitness_goals = ["Weight Loss", "Muscle Gain", "Endurance", "Flexibility"]
@@ -15,6 +15,13 @@ fitness_levels = ["Beginner", "Intermediate", "Advanced"]
 
 class ProfilePage:
     def __init__(self, master, WINDOW_HEIGHT, WINDOW_WIDTH, uname):
+        self.__levels_xp_thresholds = {
+            1: 100,
+            2: 300,
+            3: 500,
+            4: 700,
+            5: 900
+        }
         self.master = master
         self.master.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
         self.master.title("Profile page")
@@ -53,11 +60,61 @@ class ProfilePage:
         self.fitness_level_menu = ttk.Combobox(master, values=fitness_levels, textvariable=self.fitness_level_var, state="readonly")
         self.fitness_level_menu.grid(row=3, column=1, padx=5, pady=5)
 
+        self.__user_level = None
+        self.level_img = None
+        LEVEL_IMG_WIDTH = 90
+        LEVEL_IMG_HEIGHT = 90
+        self.user_xp = 8000  # database loaded to here!!
+        user_xp = self.user_xp
+        MAX_LEVEL = 5
+        exceeded_max_level = False
+        for level, thres in self.__levels_xp_thresholds.items():
+            if user_xp - thres >= 0:
+                user_xp -= thres
+                if level == MAX_LEVEL:
+                    exceeded_max_level = True
+            else:
+                print(level)
+                self.__user_level = level
+                self.level_img = Image.open("./icons/level_" + str(level) + ".png")
+                self.level_img = self.level_img.resize((LEVEL_IMG_WIDTH, LEVEL_IMG_HEIGHT))
+                self.level_img = ImageTk.PhotoImage(self.level_img, master=self.master)
+                self.xp_label = Label(self.master, image=self.level_img)
+                self.xp_label.grid(row=4, column=0, padx=5, pady=5)
+                break
+        if exceeded_max_level:
+            self.__user_level = level
+            self.level_img = Image.open("./icons/level_" + str(MAX_LEVEL) + ".png")
+            self.level_img = self.level_img.resize((LEVEL_IMG_WIDTH, LEVEL_IMG_HEIGHT))
+            self.level_img = ImageTk.PhotoImage(self.level_img, master=self.master)
+            self.xp_label = Label(self.master, image=self.level_img)
+            self.xp_label.grid(row=4, column=0, padx=5, pady=5)
+
+        # Create a progress bar for XP level
+        # self.xp_label = Label(master, text="Level:")
+        # self.xp_label.grid(row=4, column=0, padx=5, pady=5)
+        self.xp_progress = ttk.Progressbar(master, orient=HORIZONTAL, mode='determinate')
+        self.xp_progress.grid(row=4, column=1, columnspan=2, padx=5, pady=5)
+        self.xp_label2 = Label(master)
+        self.xp_label2.grid(row=4, column=3)
         # Create a button to save changes
         self.save_button = Button(master, text="Save Changes", command=lambda: self.save_profile(uname))
-        self.save_button.grid(row=4, columnspan=2, padx=5, pady=5)
+        self.save_button.grid(row=5, columnspan=2, padx=5, pady=5)
         self.goback_button = tk.Button(master, text="Go back", command=lambda: go_back(uname, self.master))
         self.goback_button.place(x=WINDOW_WIDTH - 100, y=WINDOW_HEIGHT - 50)
+        # Function to set the XP progress bar value
+        if exceeded_max_level:
+            self.set_xp_progress(self.__levels_xp_thresholds[self.__user_level] + user_xp, self.__levels_xp_thresholds[self.__user_level])
+        else:
+            self.set_xp_progress(user_xp, self.__levels_xp_thresholds[self.__user_level])
+
+    def set_xp_progress(self, current_xp, max_xp):
+        self.xp_progress['maximum'] = max_xp
+        self.xp_progress['value'] = current_xp
+        # Update the label to show current XP
+        # self.xp_label.config(text=f"XP: {current_xp}/{max_xp}")
+        self.xp_label2.config(text=f"{current_xp}/{max_xp}")
+
 
     # Function to save the edited profile information
     def save_profile(self, uname):
