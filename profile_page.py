@@ -64,7 +64,7 @@ class ProfilePage:
         self.level_img = None
         LEVEL_IMG_WIDTH = 90
         LEVEL_IMG_HEIGHT = 90
-        self.user_xp = 8000  # database loaded to here!!
+        self.user_xp = user_details["XP"]
         user_xp = self.user_xp
         MAX_LEVEL = 5
         exceeded_max_level = False
@@ -114,7 +114,6 @@ class ProfilePage:
         # Update the label to show current XP
         # self.xp_label.config(text=f"XP: {current_xp}/{max_xp}")
         self.xp_label2.config(text=f"{current_xp}/{max_xp}")
-
 
     # Function to save the edited profile information
     def save_profile(self, uname):
