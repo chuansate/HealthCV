@@ -8,6 +8,80 @@ from PIL import Image, ImageTk
 from paths_to_images import PATH_TO_TICK_IMG
 
 
+class PersonalizedDailyTasks:
+    def __init__(self):
+        self.__personalized_daily_tasks = {
+            "Weight Loss": {
+                "Beginner": {
+                    "Push-up": {"target_set": 3, "target_rep": 3},
+                    "Biceps curl": {"target_set": 3, "target_rep": 3},
+                    "Kick-And-Catch": {"target_score": 200},
+                    "Yoga Imitation": {"target_score": 500}
+                },
+                "Intermediate": {
+                    "Push-up": {"target_set": 4, "target_rep": 5},
+                    "Biceps curl": {"target_set": 4, "target_rep": 5},
+                    "Kick-And-Catch": {"target_score": 400},
+                    "Yoga Imitation": {"target_score": 700}
+                },
+                "Advanced": {
+                    "Push-up": {"target_set": 5, "target_rep": 8},
+                    "Biceps curl": {"target_set": 5, "target_rep": 8},
+                    "Kick-And-Catch": {"target_score": 600},
+                    "Yoga Imitation": {"target_score": 900}
+                },
+            },
+            "Muscle Gain": {
+                "Beginner": {
+                    "Push-up": {"target_set": 3, "target_rep": 6},
+                    "Biceps curl": {"target_set": 3, "target_rep": 10},
+                },
+                "Intermediate": {
+                    "Push-up": {"target_set": 4, "target_rep": 8},
+                    "Biceps curl": {"target_set": 4, "target_rep": 12},
+                },
+                "Advanced": {
+                    "Push-up": {"target_set": 5, "target_rep": 10},
+                    "Biceps curl": {"target_set": 5, "target_rep": 14},
+                },
+            },
+            "Endurance": {
+                "Beginner": {
+                    "Push-up": {"target_set": 2, "target_rep": 8},
+                    "Biceps curl": {"target_set": 2, "target_rep": 10},
+                    "Kick-And-Catch": {"num_match": 10, "each_game_target_score": 25},
+                    "Yoga Imitation": {"target_score": 600}
+                },
+                "Intermediate": {
+                    "Push-up": {"target_set": 3, "target_rep": 10},
+                    "Biceps curl": {"target_set": 3, "target_rep": 12},
+                    "Kick-And-Catch": {"num_match": 12, "each_game_target_score": 35},
+                    "Yoga Imitation": {"target_score": 800}
+                },
+                "Advanced": {
+                    "Push-up": {"target_set": 3, "target_rep": 10},
+                    "Biceps curl": {"target_set": 3, "target_rep": 12},
+                    "Kick-And-Catch": {"num_match": 14, "each_game_target_score": 40},
+                    "Yoga Imitation": {"target_score": 800}
+                },
+            },
+            "Flexibility": {
+                "Beginner": {
+                    "Kick-And-Catch": {"target_punch": 50, "target_kick": 50},
+                    "Yoga Imitation": {"target_score": 1000}
+                },
+                "Intermediate": {
+                    "Kick-And-Catch": {"target_punch": 80, "target_kick": 80},
+                    "Yoga Imitation": {"target_score": 1300}
+                },
+                "Advanced": {
+                    "Kick-And-Catch": {"target_punch": 110, "target_kick": 110},
+                    "Yoga Imitation": {"target_score": 1600}
+                }
+            }
+        }
+
+
 class DailyTasksPage:
     def __init__(self, root, WINDOW_WIDTH, WINDOW_HEIGHT):
         self.root = root
