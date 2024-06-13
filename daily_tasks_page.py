@@ -16,7 +16,8 @@ class DailyTasksPage:
             "fitness_goals": ["Weight Loss", "Muscle Gain", "Endurance", "Flexibility"],
             "fitness_levels": ["Beginner", "Intermediate", "Advanced"]
         }
-
+        self.WINDOW_WIDTH = WINDOW_WIDTH
+        self.WINDOW_HEIGHT = WINDOW_HEIGHT
         self.root.title("Daily Tasks")
         self.root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
         self.root.configure(bg="#f5f5f5")
@@ -59,38 +60,38 @@ class DailyTasksPage:
         tasks_title_label.pack(anchor="w")
 
         # Scrollable Tasks List
-        tasks_canvas = tk.Canvas(tasks_frame, bg="#f5f5f5")
-        scrollbar = ttk.Scrollbar(tasks_frame, orient="vertical", command=tasks_canvas.yview)
-        scrollable_frame = ttk.Frame(tasks_canvas)
-        scrollable_frame.bind(
+        self.tasks_canvas = tk.Canvas(tasks_frame, bg="#f5f5f5")
+        self.scrollbar = ttk.Scrollbar(tasks_frame, orient="vertical", command=self.tasks_canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.tasks_canvas)
+        self.scrollable_frame.bind(
             "<Configure>",
-            lambda e: tasks_canvas.configure(
-                scrollregion=tasks_canvas.bbox("all")
+            lambda e: self.tasks_canvas.configure(
+                scrollregion=self.tasks_canvas.bbox("all")
             )
         )
 
-        tasks_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        tasks_canvas.configure(yscrollcommand=scrollbar.set)
+        self.tasks_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.tasks_canvas.configure(yscrollcommand=self.scrollbar.set)
 
-        tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
-        scrollbar.pack(side="right", fill=tk.Y)
+        self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
+        self.scrollbar.pack(side="right", fill=tk.Y)
 
         # generate these based on the fitness goal and fitness level of the users
-        self.add_task(scrollable_frame, "Run 5 miles", "Run at a steady pace for 5 miles.", True)
-        self.add_task(scrollable_frame, "Strength Training", "Complete a full body strength training workout.", True)
-        self.add_task(scrollable_frame, "Yoga", "Attend a 1-hour yoga class.", False)
-        self.add_task(scrollable_frame, "Cycling", "Cycle for 20 miles at a moderate pace.", False)
-        self.add_task(scrollable_frame, "Swimming", "Swim for 30 minutes.", True)
+        self.add_task("Run 5 miles", "Run at a steady pace for 5 miles.", True)
+        self.add_task("Strength Training", "Complete a full body strength training workout.", True)
+        self.add_task("Yoga", "Attend a 1-hour yoga class.", False)
+        self.add_task("Cycling", "Cycle for 20 miles at a moderate pace.", False)
+        self.add_task("Swimming", "Swim for 30 minutes.", True)
 
-    def add_task(self, parent, task_name, task_details, completed):
-        task_frame = tk.Frame(parent, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)
-        task_frame.pack(fill=tk.X, pady=5)
+    def add_task(self, task_name, task_details, completed):
+        task_frame = tk.Frame(self.scrollable_frame, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)
+        task_frame.pack(fill=tk.X, pady=5, expand=True)
 
         task_label = tk.Label(task_frame, text=task_name, font=("Helvetica", 14, "bold"), bg="#ffffff", anchor="w")
-        task_label.pack(fill=tk.X)
+        task_label.pack(fill=tk.X, expand=True)
 
         details_label = tk.Label(task_frame, text=task_details, font=("Helvetica", 12), bg="#ffffff", anchor="w")
-        details_label.pack(fill=tk.X)
+        details_label.pack(fill=tk.X, expand=True)
 
         if completed:
             img_frame = tk.Frame(task_frame, bg="#ffffff")
@@ -99,7 +100,7 @@ class DailyTasksPage:
             img_label.pack(side=tk.RIGHT)
 
             rating_label = tk.Label(task_frame, text="How was the target?", font=("Helvetica", 12), bg="#f5f5f5")
-            rating_label.pack()
+            rating_label.pack(fill=tk.X)
 
             rating_var = tk.StringVar(value="Normal")
 
@@ -116,6 +117,13 @@ class DailyTasksPage:
             save_button = tk.Button(task_frame, text="Save", command=lambda: self.save_rating(rating_var.get()), bg="#007bff", fg="#ffffff",
                                     font=("Helvetica", 12))
             save_button.pack(pady=20)
+        self.scrollable_frame.pack(fill=tk.X, expand=True)
+        self.tasks_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw", width=self.WINDOW_WIDTH-60)
+        self.tasks_canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
+        self.scrollbar.pack(side="right", fill=tk.Y)
+
 
     def save_rating(self, rating_var):
         print(rating_var)
