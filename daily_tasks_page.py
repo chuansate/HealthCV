@@ -179,13 +179,11 @@ class DailyTasksPage(tk.Tk):
         else:
             dt_table.create_daily_tasks(self.__uname, cur_date, daily_tasks)
 
-        self.render_daily_tasks(daily_tasks, user_doc["fitness_goal"])
-        # generate these based on the fitness goal and fitness level of the users
-        # self.add_task("Run 5 miles", "Run at a steady pace for 5 miles.", True)
-        # self.add_task("Strength Training", "Complete a full body strength training workout.", True)
-        # self.add_task("Yoga", "Attend a 1-hour yoga class.", False)
-        # self.add_task("Cycling", "Cycle for 20 miles at a moderate pace.", False)
-        # self.add_task("Swimming", "Swim for 30 minutes.", True)
+        daily_tasks_progresses = dt_table.get_daily_tasks_progresses(self.__uname, cur_date)
+        if daily_tasks_progresses is not None:
+            self.render_daily_tasks(daily_tasks_progresses["progresses"], user_doc["fitness_goal"])
+        else:
+            print("No daily tasks progresses!")
 
     def add_task(self, task_name, description, completed):
         task_frame = tk.Frame(self.scrollable_frame, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)

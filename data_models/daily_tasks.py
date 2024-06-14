@@ -7,12 +7,30 @@ class DailyTasks:
     def __init__(self):
         pass
 
+    def get_daily_tasks_progresses(self, uname, date):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        user_doc = users_col.find_one({"uname": uname})
+        daily_tasks_doc = None
+        if user_doc is not None:
+            user_id = user_doc["_id"]
+            daily_tasks_col = db[DAILY_TASKS_COLLECTION_NAME]
+            for doc in daily_tasks_col.find():
+                if doc["user_id"] == user_doc["_id"] and doc["date"].year == date.year and doc[
+                    "date"].month == date.month and doc["date"].day == date.day:
+                    daily_tasks_doc = doc
+                    break
+        else:
+            msg = messagebox.showinfo("Warning", "Failed to find the username!")
+        client.close()
+        return daily_tasks_doc
+
     def daily_tasks_exist_on_date(self, uname, date):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
         users_col = db[USERS_COLLECTION_NAME]
         user_doc = users_col.find_one({"uname": uname})
-        burned_calories = None
         found = False
         if user_doc is not None:
             user_id = user_doc["_id"]
@@ -26,6 +44,48 @@ class DailyTasks:
             msg = messagebox.showinfo("Warning", "Failed to find the username when checking if daily tasks existed!")
         client.close()
         return found
+
+    def update_kick_and_catch_progress(self, uname, date, fitness_goal, score, num_punch, num_kick):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        user_doc = users_col.find_one({"uname": uname})
+        tasks_id = None
+        task_doc = None
+        if user_doc is not None:
+            user_id = user_doc["_id"]
+            daily_tasks_col = db[DAILY_TASKS_COLLECTION_NAME]
+            for doc in daily_tasks_col.find():
+                if doc["user_id"] == user_doc["_id"] and doc["date"].year == date.year and doc["date"].month == date.month and doc["date"].day == date.day:
+                    tasks_id = doc["_id"]
+                    task_doc = doc
+                    break
+            if tasks_id is not None:
+                if fitness_goal == "Weight Loss":
+                    progresses = task_doc["progresses"]
+                    progresses["Kick-And-Catch"]["current_score"] += score
+                    if progresses["Kick-And-Catch"]["current_score"] >= progresses["Kick-And-Catch"]["target_score"]:
+                        progresses["Kick-And-Catch"]["done"] = True
+                    daily_tasks_col.update_one({"_id": tasks_id}, {"$set": {"progresses": progresses}})
+                elif fitness_goal == "Endurance":
+                    progresses = task_doc["progresses"]
+                    if score >= progresses["Kick-And-Catch"]["each_game_target_score"]:
+                        progresses["Kick-And-Catch"]["num_match_done"] += 1
+                    if progresses["Kick-And-Catch"]["num_match_done"] >= progresses["Kick-And-Catch"]["num_match"]:
+                        progresses["Kick-And-Catch"]["done"] = True
+                    daily_tasks_col.update_one({"_id": tasks_id}, {"$set": {"progresses": progresses}})
+                elif fitness_goal == "Flexibility":
+                    progresses = task_doc["progresses"]
+                    progresses["Kick-And-Catch"]["current_punch"] += num_punch
+                    progresses["Kick-And-Catch"]["current_kick"] += num_kick
+                    if progresses["Kick-And-Catch"]["current_punch"] >= progresses["Kick-And-Catch"]["target_punch"] and progresses["Kick-And-Catch"]["current_kick"] >= progresses["Kick-And-Catch"]["target_kick"]:
+                        progresses["Kick-And-Catch"]["done"] = True
+                    daily_tasks_col.update_one({"_id": tasks_id}, {"$set": {"progresses": progresses}})
+        else:
+            msg = messagebox.showinfo("Warning", "Failed to find the username while updating personalized progress of kick-and-catch in daily tasks.")
+
+        client.close()
+
 
     def update_personalized_daily_tasks(self, uname, date, progresses):
         """

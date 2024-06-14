@@ -16,6 +16,7 @@ from data_models import User
 import playsound
 
 from Buttons import ButtonImage
+from data_models.daily_tasks import DailyTasks
 from data_models.kick_and_catch_match_records import KickAndCatchMatchRecord
 from data_models.burned_calories import BurnedCalories
 from kick_and_catch_game_objects import *
@@ -324,6 +325,7 @@ def render_kick_and_catch_game_UI(uname, window):
     best_record = user.get_best_record(uname, "Kick-And-Catch")
     game_record = KickAndCatchMatchRecord()
     burned_calories_table = BurnedCalories()
+    dt_table = DailyTasks()
     cur_datetime = datetime.now()
     if best_record is None:
         print("Either username doesnt exist or the game doesnt exist!")
@@ -404,6 +406,7 @@ def render_kick_and_catch_game_UI(uname, window):
                             cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
                             burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                             user.add_XP_to_user(uname, game_object.XP)
+                            dt_table.update_kick_and_catch_progress(uname, cur_date, user.search_by_uname(uname)["fitness_goal"], game_object.get_total_game_score(), game_object.get_num_punches(), game_object.get_num_kicks())
                             saved_game_data = True
                     else:
                         break
