@@ -3,9 +3,13 @@ Allows users to modify their details, such as fitness goal, current fitness leve
 Displays current user level, joined date
 """
 import tkinter as tk
+import datetime
 from tkinter import *
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
+
+from daily_tasks_page import PersonalizedDailyTasks
+from data_models.daily_tasks import DailyTasks
 from paths_to_images import PATH_TO_BACKGROUND_IMG, PATH_TO_LEVEL_1_IMG, PATH_TO_LEVEL_2_IMG, PATH_TO_LEVEL_3_IMG, PATH_TO_LEVEL_4_IMG, PATH_TO_LEVEL_5_IMG
 from data_models import User
 # Define options for dropdown menus
@@ -118,13 +122,19 @@ class ProfilePage:
     # Function to save the edited profile information
     def save_profile(self, uname):
         u_table = User()
+        dt_table = DailyTasks()
         fitness_goal = self.fitness_goal_var.get()
         fitness_level = self.fitness_level_var.get()
-
-        # You can use the retrieved information here to update a database or perform other actions
-        print(f"Username: {uname}, Fitness Goal: {fitness_goal}, Fitness Level: {fitness_level}")
+        cur_datetime = datetime.datetime.now()
+        cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                     cur_datetime.minute)
         try:
             u_table.save_profile_page(uname, fitness_goal, fitness_level)
+            ds_obj = PersonalizedDailyTasks()
+            user_doc = u_table.search_by_uname(uname)
+            daily_tasks = ds_obj.get_daily_tasks(user_doc["fitness_goal"], user_doc["fitness_level"])
+            dt_table.update_personalized_daily_tasks(uname, cur_date, daily_tasks)
+
             msg = messagebox.showinfo("Information", "Updated the profile page successfully!")
         except UserWarning:
             msg = messagebox.showinfo("Warning", "Failed to update the profile page, try again.")

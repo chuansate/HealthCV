@@ -179,21 +179,22 @@ class DailyTasksPage(tk.Tk):
         else:
             dt_table.create_daily_tasks(self.__uname, cur_date, daily_tasks)
 
+        self.render_daily_tasks(daily_tasks)
         # generate these based on the fitness goal and fitness level of the users
-        self.add_task("Run 5 miles", "Run at a steady pace for 5 miles.", True)
-        self.add_task("Strength Training", "Complete a full body strength training workout.", True)
-        self.add_task("Yoga", "Attend a 1-hour yoga class.", False)
-        self.add_task("Cycling", "Cycle for 20 miles at a moderate pace.", False)
-        self.add_task("Swimming", "Swim for 30 minutes.", True)
+        # self.add_task("Run 5 miles", "Run at a steady pace for 5 miles.", True)
+        # self.add_task("Strength Training", "Complete a full body strength training workout.", True)
+        # self.add_task("Yoga", "Attend a 1-hour yoga class.", False)
+        # self.add_task("Cycling", "Cycle for 20 miles at a moderate pace.", False)
+        # self.add_task("Swimming", "Swim for 30 minutes.", True)
 
-    def add_task(self, task_name, task_details, completed):
+    def add_task(self, task_name, description, completed):
         task_frame = tk.Frame(self.scrollable_frame, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)
         task_frame.pack(fill=tk.X, pady=5, expand=True)
 
         task_label = tk.Label(task_frame, text=task_name, font=("Helvetica", 12, "bold"), bg="#ffffff", anchor="w")
         task_label.pack(fill=tk.X, expand=True)
 
-        details_label = tk.Label(task_frame, text=task_details, font=("Helvetica", 12), bg="#ffffff", anchor="w")
+        details_label = tk.Label(task_frame, text=description, font=("Helvetica", 12), bg="#ffffff", anchor="w")
         details_label.pack(fill=tk.X, expand=True)
 
         if completed:
@@ -226,6 +227,12 @@ class DailyTasksPage(tk.Tk):
 
         self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side="right", fill=tk.Y)
+
+    def render_daily_tasks(self, daily_tasks):
+        """after the user changes their fitness goal and fitness level at profile page, rmb to check the table daily_tasks and delete any existing record."""
+        description = "HI"
+        for task, info in daily_tasks.items():
+            self.add_task(task, description, info["done"])
 
     def save_rating(self, rating_var):
         print(rating_var)
