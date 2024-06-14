@@ -179,7 +179,7 @@ class DailyTasksPage(tk.Tk):
         else:
             dt_table.create_daily_tasks(self.__uname, cur_date, daily_tasks)
 
-        self.render_daily_tasks(daily_tasks)
+        self.render_daily_tasks(daily_tasks, user_doc["fitness_goal"])
         # generate these based on the fitness goal and fitness level of the users
         # self.add_task("Run 5 miles", "Run at a steady pace for 5 miles.", True)
         # self.add_task("Strength Training", "Complete a full body strength training workout.", True)
@@ -228,11 +228,53 @@ class DailyTasksPage(tk.Tk):
         self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side="right", fill=tk.Y)
 
-    def render_daily_tasks(self, daily_tasks):
+    def render_daily_tasks(self, daily_tasks, fitness_goal):
         """after the user changes their fitness goal and fitness level at profile page, rmb to check the table daily_tasks and delete any existing record."""
-        description = "HI"
         for task, info in daily_tasks.items():
-            self.add_task(task, description, info["done"])
+            if fitness_goal == "Weight Loss":
+                if task == "Push-up":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+                elif task == "Biceps curl":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+                elif task == "Kick-And-Catch":
+                    description = "Progress of score: " + str(info["current_score"]) + "/" + str(info["target_score"])
+                    self.add_task(task, description, info["done"])
+                elif task == "Yoga Imitation":
+                    description = "Progress of score: " + str(info["current_score"]) + "/" + str(info["target_score"])
+                    self.add_task(task, description, info["done"])
+            elif fitness_goal == "Muscle Gain":
+                if task == "Push-up":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+                elif task == "Biceps curl":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+            elif fitness_goal == "Endurance":
+                if task == "Push-up":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+                elif task == "Biceps curl":
+                    description = "Target: " + str(info["target_set"]) + " set(s) " + str(info["target_rep"]) + " rep(s); Best record: "+ str(info["current_set"]) + " set(s) " + str(info["current_rep"]) + " rep(s)"
+                    self.add_task(task, description, info["done"])
+                elif task == "Kick-And-Catch":
+                    description = "Play " + str(info["num_match"]) + " matches with at least " + str(info["each_game_target_score"]) + " scores each game. Progress: " + str(info["num_match_done"]) + "/" + str(info["num_match"])
+                    self.add_task(task, description, info["done"])
+                elif task == "Yoga Imitation":
+                    description = "Progress of score: " + str(info["current_score"]) + "/" + str(info["target_score"])
+                    self.add_task(task, description, info["done"])
+            elif fitness_goal == "Flexibility":
+                if task == "Kick-And-Catch":
+                    description = "Make " + str(info["target_punch"]) + " punches, progress "+ str(info["current_punch"]) + "/" + str(info["target_punch"]) + " . Make " + str(info["target_kick"]) + " kicks, progress " + str(info["current_kick"]) + "/" + str(info["target_kick"])
+                    self.add_task(task, description, info["done"])
+                elif task == "Yoga Imitation":
+                    description = "Progress of score: " + str(info["current_score"]) + "/" + str(info["target_score"])
+                    self.add_task(task, description, info["done"])
+            else:
+                description = "ERROR! NO fitness goal!"
+                self.add_task(task, description, info["done"])
+
 
     def save_rating(self, rating_var):
         print(rating_var)
