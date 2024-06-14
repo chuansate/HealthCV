@@ -78,7 +78,6 @@ class ProfilePage:
                 if level == MAX_LEVEL:
                     exceeded_max_level = True
             else:
-                print(level)
                 self.__user_level = level
                 self.level_img = Image.open("./icons/level_" + str(level) + ".png")
                 self.level_img = self.level_img.resize((LEVEL_IMG_WIDTH, LEVEL_IMG_HEIGHT))
@@ -87,7 +86,7 @@ class ProfilePage:
                 self.xp_label.grid(row=4, column=0, padx=5, pady=5)
                 break
         if exceeded_max_level:
-            self.__user_level = level
+            self.__user_level = MAX_LEVEL
             self.level_img = Image.open("./icons/level_" + str(MAX_LEVEL) + ".png")
             self.level_img = self.level_img.resize((LEVEL_IMG_WIDTH, LEVEL_IMG_HEIGHT))
             self.level_img = ImageTk.PhotoImage(self.level_img, master=self.master)
@@ -122,6 +121,7 @@ class ProfilePage:
     # Function to save the edited profile information
     def save_profile(self, uname):
         u_table = User()
+        old_user_doc = u_table.search_by_uname(uname)
         dt_table = DailyTasks()
         fitness_goal = self.fitness_goal_var.get()
         fitness_level = self.fitness_level_var.get()
@@ -132,8 +132,11 @@ class ProfilePage:
             u_table.save_profile_page(uname, fitness_goal, fitness_level)
             ds_obj = PersonalizedDailyTasks()
             user_doc = u_table.search_by_uname(uname)
-            daily_tasks = ds_obj.get_daily_tasks(user_doc["fitness_goal"], user_doc["fitness_level"])
-            dt_table.update_personalized_daily_tasks(uname, cur_date, daily_tasks)
+            if old_user_doc["fitness_goal"] != user_doc["fitness_goal"] or old_user_doc["fitness_level"] != user_doc["fitness_level"]:
+                daily_tasks = ds_obj.get_daily_tasks(user_doc["fitness_goal"], user_doc["fitness_level"])
+                dt_table.update_personalized_daily_tasks(uname, cur_date, daily_tasks)
+            else:
+                print("No changes for the fitness goal or fitness level, hence no changes for personalized daily tasks!")
 
             msg = messagebox.showinfo("Information", "Updated the profile page successfully!")
         except UserWarning:
