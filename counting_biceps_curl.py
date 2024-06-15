@@ -19,6 +19,7 @@ from scipy.stats import pearsonr
 
 from data_models import User, BurnedCalories
 from data_models.biceps_curl_records import BicepsCurlRecord
+from data_models.daily_tasks import DailyTasks
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -344,6 +345,10 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
                                             cur_datetime.minute)
                         burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                         user.add_XP_to_user(uname, cbc_obj.XP)
+                        user_goal = user.search_by_uname(uname)["fitness_goal"]
+                        goals_with_biceps_curl = ["Weight Loss", "Endurance", "Muscle Gain"]
+                        if user_goal in goals_with_biceps_curl:
+                            DailyTasks().update_biceps_curl_progress(uname, cur_date, set_count, rep_count)
                         saved_game_data = True
                 else:
                     break
