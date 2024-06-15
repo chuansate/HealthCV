@@ -86,6 +86,35 @@ class DailyTasks:
 
         client.close()
 
+    def update_feedback_by_task(self, uname, date, task_name, feedback):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        user_doc = users_col.find_one({"uname": uname})
+        tasks_id = None
+        task_doc = None
+        if user_doc is not None:
+            user_id = user_doc["_id"]
+            daily_tasks_col = db[DAILY_TASKS_COLLECTION_NAME]
+            for doc in daily_tasks_col.find():
+                if doc["user_id"] == user_doc["_id"] and doc["date"].year == date.year and doc["date"].month == date.month and doc["date"].day == date.day:
+                    tasks_id = doc["_id"]
+                    task_doc = doc
+                    break
+            if task_doc is not None:
+                new_progresses = task_doc["progresses"]
+                new_progresses[task_name]["feedback"] = feedback
+                try:
+                    daily_tasks_col.update_one({"_id": tasks_id}, {"$set": {"progresses": new_progresses}})
+                    msg = messagebox.showinfo("Information", "Updated the feedback!")
+                except Exception as e:
+                    msg = messagebox.showinfo("Warning",
+                                              "Failed to update the feedback, try again!")
+                    print(e)
+        else:
+            msg = messagebox.showinfo("Warning", "Failed to find the username while updating personalized progress of kick-and-catch in daily tasks.")
+
+        client.close()
 
     def update_personalized_daily_tasks(self, uname, date, progresses):
         """

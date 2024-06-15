@@ -203,8 +203,15 @@ class DailyTasksPage(tk.Tk):
 
             rating_label = tk.Label(task_frame, text="How was the target?", font=("Helvetica", 12), bg="#f5f5f5")
             rating_label.pack(fill=tk.X)
+            cur_datetime = datetime.datetime.now()
+            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                         cur_datetime.minute)
+            daily_tasks_progresses = DailyTasks().get_daily_tasks_progresses(self.__uname, cur_date)
+            existing_feedback = daily_tasks_progresses["progresses"][task_name]["feedback"]
+            rating_var = tk.StringVar(value="1")
+            if existing_feedback is not None:
+                rating_var = tk.StringVar(value=existing_feedback)
 
-            rating_var = tk.StringVar(value="Normal")
 
             rating_easy = tk.Radiobutton(task_frame, text="Easy", variable=rating_var, value="Easy",
                                          font=("Helvetica", 12), bg="#f5f5f5")
@@ -215,8 +222,10 @@ class DailyTasksPage(tk.Tk):
             rating_hard = tk.Radiobutton(task_frame, text="Hard", variable=rating_var, value="Hard",
                                          font=("Helvetica", 12), bg="#f5f5f5")
             rating_hard.pack(side=tk.LEFT, padx=10)
-
-            save_button = tk.Button(task_frame, text="Save", command=lambda: self.save_rating(rating_var.get()), bg="#007bff", fg="#ffffff",
+            cur_datetime = datetime.datetime.now()
+            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
+                                         cur_datetime.minute)
+            save_button = tk.Button(task_frame, text="Save", command=lambda: self.save_rating(self.__uname, cur_date, task_name, rating_var.get()), bg="#007bff", fg="#ffffff",
                                     font=("Helvetica", 12))
             save_button.pack(pady=20)
         self.scrollable_frame.pack(fill=tk.X, expand=True)
@@ -227,7 +236,6 @@ class DailyTasksPage(tk.Tk):
         self.scrollbar.pack(side="right", fill=tk.Y)
 
     def render_daily_tasks(self, daily_tasks, fitness_goal):
-        """after the user changes their fitness goal and fitness level at profile page, rmb to check the table daily_tasks and delete any existing record."""
         for task, info in daily_tasks.items():
             if fitness_goal == "Weight Loss":
                 if task == "Push-up":
@@ -273,11 +281,10 @@ class DailyTasksPage(tk.Tk):
                 description = "ERROR! NO fitness goal!"
                 self.add_task(task, description, info["done"])
 
-
-    def save_rating(self, rating_var):
-        print(rating_var)
-        msg = messagebox.showinfo("Information", "Updated the feedback!")
-
+    def save_rating(self, uname, date, task_name, rating_var):
+        print(uname, date, task_name, rating_var)
+        dt_table = DailyTasks()
+        dt_table.update_feedback_by_task(uname, date, task_name, rating_var)
 
 def go_back(uname, window):
     from home_page import home_page
