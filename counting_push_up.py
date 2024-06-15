@@ -9,6 +9,7 @@ import numpy as np
 import math
 
 from data_models import PushUpRecord, User, BurnedCalories
+from data_models.daily_tasks import DailyTasks
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -336,6 +337,10 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                                         cur_datetime.minute)
                     burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                     user.add_XP_to_user(uname, cpu_obj.XP)
+                    user_goal = user.search_by_uname(uname)["fitness_goal"]
+                    goals_with_pushup = ["Weight Loss", "Muscle Gain", "Endurance"]
+                    if user_goal in goals_with_pushup:
+                        DailyTasks().update_push_up_progress(uname, cur_date, set_count, rep_count)
                     saved_game_data = True
             else:
                 break

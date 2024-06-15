@@ -45,6 +45,43 @@ class DailyTasks:
         client.close()
         return found
 
+    def update_push_up_progress(self, uname, date, set_count, rep_count):
+        client = pymongo.MongoClient(HOST)
+        db = client[DATABASE_NAME]
+        users_col = db[USERS_COLLECTION_NAME]
+        user_doc = users_col.find_one({"uname": uname})
+        tasks_id = None
+        task_doc = None
+        if user_doc is not None:
+            user_id = user_doc["_id"]
+            daily_tasks_col = db[DAILY_TASKS_COLLECTION_NAME]
+            for doc in daily_tasks_col.find():
+                if doc["user_id"] == user_doc["_id"] and doc["date"].year == date.year and doc["date"].month == date.month and doc["date"].day == date.day:
+                    tasks_id = doc["_id"]
+                    task_doc = doc
+                    break
+            if task_doc is not None:
+                progresses = task_doc["progresses"]
+                if set_count > progresses["Push-up"]["current_set"]:
+                    progresses["Push-up"]["current_set"] = set_count
+                if rep_count > progresses["Push-up"]["current_rep"]:
+                    progresses["Push-up"]["current_rep"] = rep_count
+                if progresses["Push-up"]["current_set"] >= progresses["Push-up"]["target_set"] and progresses["Push-up"]["current_rep"] >= progresses["Push-up"]["target_rep"]:
+                    progresses["Push-up"]["done"] = True
+                try:
+                    daily_tasks_col.update_one({"_id": tasks_id}, {"$set": {"progresses": progresses}})
+                except Exception as e:
+                    msg = messagebox.showinfo("Warning",
+                                              "Failed to update the progress of push-up in daily tasks!")
+                    print(e)
+            else:
+                msg = messagebox.showinfo("Warning",
+                                          "Failed to find the daily tasks when updating the progress of push-up in daily tasks!")
+        else:
+            msg = messagebox.showinfo("Warning", "Failed to find the username while updating personalized progress of push-up in daily tasks.")
+
+        client.close()
+
     def update_biceps_curl_progress(self, uname, date, set_count, rep_count):
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
@@ -78,7 +115,7 @@ class DailyTasks:
                 msg = messagebox.showinfo("Warning",
                                           "Failed to find the daily tasks when updating the progress of biceps curl in daily tasks!")
         else:
-            msg = messagebox.showinfo("Warning", "Failed to find the username while updating personalized progress of kick-and-catch in daily tasks.")
+            msg = messagebox.showinfo("Warning", "Failed to find the username while updating personalized progress of biceps curl in daily tasks.")
 
         client.close()
 
