@@ -18,6 +18,7 @@ import csv
 import math
 
 from data_models import User, YogaImitationMatchRecord, BurnedCalories
+from data_models.daily_tasks import DailyTasks
 
 
 def center_opencv_text_horizontally(frame, y, text, text_fs, text_thickness, font):
@@ -420,6 +421,10 @@ def render_yoga_poses_imitation_game_UI(uname, window):
                                             cur_datetime.minute)
                         burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                         user.add_XP_to_user(uname, game_object.XP)
+                        user_goal = user.search_by_uname(uname)["fitness_goal"]
+                        goals_with_yoga_imitation = ["Weight Loss", "Endurance", "Flexibility"]
+                        if user_goal in goals_with_yoga_imitation:
+                            DailyTasks().update_yoga_imitation_progress(uname, cur_date, game_object.get_total_game_score())
                         saved_game_data = True
                 else:
                     break

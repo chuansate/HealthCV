@@ -406,7 +406,10 @@ def render_kick_and_catch_game_UI(uname, window):
                             cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
                             burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                             user.add_XP_to_user(uname, game_object.XP)
-                            dt_table.update_kick_and_catch_progress(uname, cur_date, user.search_by_uname(uname)["fitness_goal"], game_object.get_total_game_score(), game_object.get_num_punches(), game_object.get_num_kicks())
+                            user_goal = user.search_by_uname(uname)["fitness_goal"]
+                            goals_with_kick_and_catch = ["Weight Loss", "Endurance", "Flexibility"]
+                            if user_goal in goals_with_kick_and_catch:
+                                dt_table.update_kick_and_catch_progress(uname, cur_date, user_goal, game_object.get_total_game_score(), game_object.get_num_punches(), game_object.get_num_kicks())
                             saved_game_data = True
                     else:
                         break
