@@ -76,8 +76,6 @@ class CountingPushUp:
         self.__push_up_count = 0
         self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
-        self.__ready_pose_hold_elapsed = 0
-        self.__ready_pose_hold_duration_threshold = 3
         self.__grad_left_UP_threshold = 5
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
@@ -99,8 +97,6 @@ class CountingPushUp:
         knee_y < ankle_y AND
         the correlation between the 4 points (shoulder, hip, knee, and ankle) is high enuf
         """
-        self.__ready_pose_hold_elapsed += (curTime - prevTime)
-        # print("elapsed = ", self.__ready_pose_hold_elapsed)
         left_shoulder_x = pose_landmarks[CountingPushUp.features[0]].x
         left_hip_x = pose_landmarks[CountingPushUp.features[6]].x
         left_knee_x = pose_landmarks[CountingPushUp.features[8]].x
@@ -126,12 +122,6 @@ class CountingPushUp:
             self.__user_in_ready_pose = False
         return self.__user_in_ready_pose
 
-    def get_ready_pose_hold_elapsed(self):
-        return self.__ready_pose_hold_elapsed
-
-    def get_ready_pose_hold_duration_threshold(self):
-        return self.__ready_pose_hold_duration_threshold
-
     def detect_pose_landmarks(self, frame):
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
@@ -144,12 +134,6 @@ class CountingPushUp:
                                                          landmark_drawing_spec=CountingPushUp.mp_drawing_styles.get_default_pose_landmarks_style())
 
         return results
-
-    def reset_ready_pose_hold_elapsed(self):
-        self.__ready_pose_hold_elapsed = 0
-
-    def reset_user_status(self):
-        self.__user_status = 1
 
     def get_push_up_count(self):
         return self.__push_up_count
@@ -288,14 +272,7 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
                         (255, 0, 255), 1)
             if pose_results.pose_landmarks:
                 if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
-                    if cpu_obj.get_ready_pose_hold_elapsed() >= cpu_obj.get_ready_pose_hold_duration_threshold():
-                        # cpu_obj.set_user_status(1)  # Set it to push-up UP
-                        cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
-
-                    else:
-                        center_opencv_text_horizontally(frame, 70, "Hold this pose for " + str(
-                            int(round(cpu_obj.get_ready_pose_hold_duration_threshold() - cpu_obj.get_ready_pose_hold_elapsed(), 0))),
-                                                        1, 1, cv2.FONT_HERSHEY_PLAIN)
+                    cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
                     cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 0, 255), 1)
