@@ -70,10 +70,10 @@ class CountingBicepsCurl:
         self.__right_arm_status = 0  # 0 means right arm is straightened, 1 means lifting the dumbbell.
         self.__left_elbow_angle = 0
         self.__right_elbow_angle = 0
-        self.__user_in_ready_pose = False  # when the user straightens their arm
-        self.__ready_pose_ankle_angle = 165  # threshold to determine if the arms are straightened
+        self.__ready_pose_elbow_angle_threshold = 165  # threshold to determine if the arms are straightened
         self.__lift_angle = 40  # threshold to determine if the dumbbell is raised high enough
         self.__workout_over = False
+        self.__user_doing_biceps_curl = False
         self.workout_duration = 0  # time elapsed in seconds
         self.calories_burned_per_min = 4.5
         self.XP = 10
@@ -96,12 +96,15 @@ class CountingBicepsCurl:
         right_vec_elbow_to_shoulder = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_SHOULDER")
         right_vec_elbow_to_wrist = self._get_vector_by_landmark_names(landmarks_dict, "LEFT_ELBOW", "LEFT_WRIST")
         self.__right_elbow_angle = self._get_angle_betw_two_vectors(right_vec_elbow_to_shoulder, right_vec_elbow_to_wrist)
-        if self.__left_elbow_angle >= self.__ready_pose_ankle_angle or self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
+        if self.__left_elbow_angle >= self.__ready_pose_elbow_angle_threshold and self.__right_elbow_angle >= self.__ready_pose_elbow_angle_threshold:
+            self.__user_doing_biceps_curl = True
             return True
-        elif self.__right_elbow_angle >= self.__ready_pose_ankle_angle:
-            self.__right_arm_status = 0
+        elif self.__user_doing_biceps_curl and self.__left_elbow_angle >= self.__ready_pose_elbow_angle_threshold:
+            return True
+        elif self.__user_doing_biceps_curl and self.__right_elbow_angle >= self.__ready_pose_elbow_angle_threshold:
             return True
         else:
+            self.__user_doing_biceps_curl = False
             return False
 
     def detect_pose_landmarks(self, frame):
@@ -120,7 +123,7 @@ class CountingBicepsCurl:
     def update_counter(self):
         if self.__left_arm_status == 0 and self.__left_elbow_angle <= self.__lift_angle and self.__left_biceps_curl_count < self.__rep_count:
             self.__left_arm_status = 1
-        elif self.__left_arm_status == 1 and self.__left_elbow_angle >= self.__ready_pose_ankle_angle and self.__left_biceps_curl_count < self.__rep_count:
+        elif self.__left_arm_status == 1 and self.__left_elbow_angle >= self.__ready_pose_elbow_angle_threshold and self.__left_biceps_curl_count < self.__rep_count:
             self.__left_arm_status = 0
             self.__left_biceps_curl_count += 1
             thread = threading.Thread(target=self.play_audio_for_counter_left_arm)
@@ -128,7 +131,7 @@ class CountingBicepsCurl:
 
         if self.__right_arm_status == 0 and self.__right_elbow_angle <= self.__lift_angle and self.__right_biceps_curl_count < self.__rep_count:
             self.__right_arm_status = 1
-        elif self.__right_arm_status == 1 and self.__right_elbow_angle >= self.__ready_pose_ankle_angle and self.__right_biceps_curl_count < self.__rep_count:
+        elif self.__right_arm_status == 1 and self.__right_elbow_angle >= self.__ready_pose_elbow_angle_threshold and self.__right_biceps_curl_count < self.__rep_count:
             self.__right_arm_status = 0
             self.__right_biceps_curl_count += 1
             thread = threading.Thread(target=self.play_audio_for_counter_right_arm)
@@ -280,12 +283,12 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
                             (255, 0, 255), 1)
                 pose_results = cbc_obj.detect_pose_landmarks(frame)
                 if pose_results.pose_landmarks:
-                    # cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 150),
-                    #             cv2.FONT_HERSHEY_PLAIN, 1,
-                    #             (255, 0, 255), 1)
-                    # cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 175),
-                    #             cv2.FONT_HERSHEY_PLAIN, 1,
-                    #             (255, 0, 255), 1)
+                    cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 200),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
+                    cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 225),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 0, 255), 1)
                     if cbc_obj.userInReadyPose(pose_results):
                         cbc_obj.update_counter()
                         cv2.putText(frame, "Set : " + str(cbc_obj.get_current_set_count()) + "/" + str(cbc_obj.get_set_count()), (50, 75),
