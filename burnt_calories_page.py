@@ -27,37 +27,6 @@ class BurntCaloriesPage:
         self.bg_img = ImageTk.PhotoImage(self.bg_img, master=self.root)
         self.create_widgets()
 
-    # def create_widgets(self):
-    #     img_label = Label(self.root, image=self.bg_img)
-    #     img_label.place(x=0, y=0)
-    #     # Main frame
-    #     main_frame = tk.Frame(self.root, padx=20, pady=20)
-    #     main_frame.pack(expand=True, fill=tk.BOTH)
-    #     self.root.resizable(False, False)
-    #
-    #     # Title
-    #     title_label = tk.Label(main_frame, text="Fitness Tracker", font=("Helvetica", 20, "bold"), bg="#f5f5f5", fg="#333333")
-    #     title_label.pack(pady=10)
-    #
-    #     # Today's burned calories
-    #     today_frame = tk.Frame(main_frame, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)
-    #     today_frame.pack(fill=tk.X, pady=10)
-    #
-    #     today_label = tk.Label(today_frame, text="Today's Burned Calories: 500", font=("Helvetica", 14), bg="#ffffff", anchor="w")
-    #     today_label.pack(fill=tk.X)
-    #
-    #     # Calendar picker
-    #     calendar_frame = tk.Frame(main_frame, bg="#f5f5f5")
-    #     calendar_frame.pack(pady=10)
-    #
-    #     calendar_label = tk.Label(calendar_frame, text="Choose Month and Year", font=("Helvetica", 16, "bold"), bg="#f5f5f5", fg="#333333")
-    #     calendar_label.pack(anchor="w")
-    #
-    #     self.calendar = Calendar(calendar_frame, selectmode='day', year=2023, month=6)
-    #     self.calendar.pack(pady=10)
-    #
-    #     visualize_button = tk.Button(calendar_frame, text="Visualize", command=self.visualize_data, bg="#007bff", fg="#ffffff", font=("Helvetica", 12))
-    #     visualize_button.pack(pady=10)
     def load_today_burned_calories(self):
         burned_calories_table = BurnedCalories()
         cur_datetime = datetime.datetime.now()
