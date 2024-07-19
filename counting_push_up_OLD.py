@@ -1,7 +1,6 @@
 """
-This program is using trained MLP to detect whether the user is in ready-pose
-But the problem is push-up DOWN was considered as non-ready-pose during training.
-Hence, when the user is doing push-up DOWN, then the user counter will stop becoz it is recognized as not ready
+This program is using trained MLP to detect whether the user is in ready-pose, and
+detect if the user is in push-up UP or in push-up DOWN
 """
 from tkinter import messagebox
 
@@ -168,7 +167,8 @@ class CountingPushUp:
 
 
 def render_counting_push_up_UI(uname, window):
-    window.destroy()
+    if window is not None:
+        window.destroy()
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Counting push-up", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Counting push-up", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -342,3 +342,5 @@ def render_counting_push_up_UI(uname, window):
         # prevTime = curTime
         # if cv2.waitKey(10) & 0xFF == ord('q'):
         #     break
+
+render_counting_push_up_UI("Low", None)

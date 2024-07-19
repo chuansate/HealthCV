@@ -221,7 +221,6 @@ class DailyTasks:
         """
         The record may exist before (the user clicked into the daily tasks page), then delete it and insert a new one
         The record may not exist (the user hasn't clicked), then insert a new one
-        :return:
         """
         client = pymongo.MongoClient(HOST)
         db = client[DATABASE_NAME]
