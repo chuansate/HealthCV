@@ -127,8 +127,7 @@ class DailyTasksPage(tk.Tk):
         user_table = User()
         user_doc = user_table.search_by_uname(self.__uname)
         ds_obj = PersonalizedDailyTasks()
-        # After loading the daily_tasks, write them into the table `DailyTask` with additional info such as progress
-        daily_tasks = ds_obj.get_daily_tasks(user_doc["fitness_goal"], user_doc["fitness_level"])
+
         # Title
         title_label = tk.Label(main_frame, text="Daily Tasks", font=("Helvetica", 12, "bold"), bg="#f5f5f5", fg="#333333")
         title_label.pack(pady=5)
@@ -169,6 +168,8 @@ class DailyTasksPage(tk.Tk):
 
         self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side="right", fill=tk.Y)
+        # After loading the daily_tasks, write them into the table `DailyTask` with additional info such as progress
+        daily_tasks = ds_obj.get_daily_tasks(user_doc["fitness_goal"], user_doc["fitness_level"])
 
         dt_table = DailyTasks()
         cur_datetime = datetime.datetime.now()
