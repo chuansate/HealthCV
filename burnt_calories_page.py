@@ -5,7 +5,7 @@ Displays current user level, joined date
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
-from paths_to_images import PATH_TO_BURNED_CALORIES_IMG, PATH_TO_BACKGROUND_IMG
+from paths_to_images import PATH_TO_BACKGROUND_IMG
 from tkcalendar import Calendar
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -13,6 +13,44 @@ import random
 import datetime
 from tkinter import messagebox
 from data_models import BurnedCalories
+from statistics import mean
+
+
+class BurntCaloriesReportPage:
+    def __init__(self, root, WINDOW_WIDTH, WINDOW_HEIGHT, previous_month_burned_calories, current_month_burned_calories):
+        self.root = root
+        self.root.title("Burnt calories Report page")
+        self.root.configure(bg="#f5f5f5")
+        self.root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+        self.bg_img = Image.open(PATH_TO_BACKGROUND_IMG)
+        self.bg_img = self.bg_img.resize((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.bg_img = ImageTk.PhotoImage(self.bg_img, master=self.root)
+        self.total_burned_calories_cur_month = sum(current_month_burned_calories)
+        self.total_burned_calories_prev_month = sum(previous_month_burned_calories)
+        self.mean_burned_calories_cur_month = mean(current_month_burned_calories)
+        self.create_widgets()
+        print("from report page")
+        print("prev: ", previous_month_burned_calories)
+        print("cur: ", current_month_burned_calories)
+
+    def create_widgets(self):
+        img_label = Label(self.root, image=self.bg_img)
+        img_label.place(x=0, y=0)
+        total_calo_lb = tk.Label(self.root, text="Total burned calories: ")
+        total_calo_lb.grid(row=0, column=0, pady=5)
+        total_calo_val = tk.Label(self.root, text=str(self.total_burned_calories_cur_month))
+        total_calo_val.grid(row=0, column=1, pady=5)
+
+        avg_calo_lb = tk.Label(self.root, text="Average daily burned calories: ")
+        avg_calo_lb.grid(row=1, column=0, pady=5)
+        avg_calo_val = tk.Label(self.root, text=str(round(self.mean_burned_calories_cur_month, 2)))
+        avg_calo_val.grid(row=1, column=1, pady=5)
+
+        if self.total_burned_calories_cur_month > self.total_burned_calories_prev_month:
+            comparison_lb = tk.Label(self.root, text="You have burned " + str(self.total_burned_calories_cur_month - self.total_burned_calories_prev_month) + " more calories than previous month!")
+        else:
+            comparison_lb = tk.Label(self.root, text="You have burned " + str(self.total_burned_calories_prev_month - self.total_burned_calories_cur_month) + " less calories than previous month!")
+        comparison_lb.grid(row=2, column=0, pady=5, columnspan=2)
 
 
 class BurntCaloriesPage:
@@ -74,12 +112,23 @@ class BurntCaloriesPage:
         if selected_date is not None:
             year = selected_date.year
             month = selected_date.month
-
             days_in_month = (datetime.date(year, month + 1, 1) - datetime.date(year, month, 1)).days if month < 12 else 31
             # daily_calories = [random.randint(200, 800) for _ in range(days_in_month)]
 
             daily_calories = [bc_table.get_burned_calories_by_date(self.uname, datetime.date(year, month, _ + 1)) for _ in range(days_in_month)]
             dates = [datetime.date(year, month, day + 1).day for day in range(days_in_month)]
+
+            # getting previous month's data
+            if month - 1 >= 1:
+                prev_month = month - 1
+                prev_year = year
+            else:
+                prev_month = 12
+                prev_year = year - 1
+            prev_days_in_month = (datetime.date(prev_year, prev_month + 1, 1) - datetime.date(prev_year, prev_month, 1)).days if prev_month < 12 else 31
+            prev_month_daily_calories = [bc_table.get_burned_calories_by_date(self.uname, datetime.date(prev_year, prev_month, _ + 1)) for _
+                              in range(prev_days_in_month)]
+
 
             # Create the plot
             fig, ax = plt.subplots()
@@ -98,6 +147,10 @@ class BurntCaloriesPage:
             canvas = FigureCanvasTkAgg(fig, master=plot_window)
             canvas.draw()
             canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            window = tk.Tk()
+            report_page = BurntCaloriesReportPage(window, 400, 150, prev_month_daily_calories, daily_calories)
+            window.mainloop()
         else:
             msg = messagebox.showinfo("Warning", "Please simply choose a day in the desired year and month.")
 
