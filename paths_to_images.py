@@ -9,7 +9,6 @@ PATH_TO_PROFILE_IMG = "./icons/profile_icon.png"
 PATH_TO_TASKS_IMG = "./icons/daily_task_icon.png"
 PATH_TO_TICK_IMG = "./icons/tick_icon.png"
 PATH_TO_BURNED_CALORIES_IMG = "./icons/burned_calories_icon.png"
-PATH_TO_PERFORMANCE_REPORT_IMG = "./icons/performance_report.png"
 
 # For the profile page
 PATH_TO_LEVEL_1_IMG = "./icons/level_1.png"

@@ -17,7 +17,6 @@ def go_back(uname, window):
 
 def guides_page(uname, window):
     from guides_push_up import guides_push_up_page
-    from guides_biceps_curl import guides_biceps_curl_page
     if window is not None:
         # window could be None happen when the user is from push-up/biceps curl to fitness_games_page
         window.destroy()
@@ -49,14 +48,6 @@ def guides_page(uname, window):
                                activebackground=button_active_bg, image=push_up_img, compound=RIGHT,
                                command=lambda: guides_push_up_page(uname, window))
     push_up_button.pack(pady=10, ipadx=20, ipady=10)
-
-    biceps_curl_img = Image.open(PATH_TO_BICEPS_CURL_ICON)
-    biceps_curl_img = biceps_curl_img.resize((ICON_WIDTH, ICON_HEIGHT))
-    biceps_curl_img = ImageTk.PhotoImage(biceps_curl_img)
-    biceps_curl_button = tk.Button(window, text="Biceps curl", font=button_font, bg=button_bg, fg=button_fg,
-                                   activebackground=button_active_bg, image=biceps_curl_img, compound=RIGHT,
-                                   command=lambda: guides_biceps_curl_page(uname, window))
-    biceps_curl_button.pack(pady=10, ipadx=20, ipady=10)
 
     logout_button = tk.Button(window, text="Go back", command=lambda: go_back(uname, window))
     logout_button.place(x=WINDOW_WIDTH - 100, y=WINDOW_HEIGHT - 50)
