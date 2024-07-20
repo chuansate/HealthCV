@@ -189,50 +189,38 @@ class DailyTasksPage(tk.Tk):
     def add_task(self, task_name, description, completed):
         task_frame = tk.Frame(self.scrollable_frame, bg="#ffffff", padx=10, pady=10, bd=1, relief=tk.SOLID)
         task_frame.pack(fill=tk.X, pady=5, expand=True)
-
         task_label = tk.Label(task_frame, text=task_name, font=("Helvetica", 12, "bold"), bg="#ffffff", anchor="w")
         task_label.pack(fill=tk.X, expand=True)
-
         details_label = tk.Label(task_frame, text=description, font=("Helvetica", 12), bg="#ffffff", anchor="w")
         details_label.pack(fill=tk.X, expand=True)
-
         if completed:
             img_frame = tk.Frame(task_frame, bg="#ffffff")
             img_frame.pack(fill=tk.X, expand=True)
             img_label = Label(img_frame, image=self.tick_img)
             img_label.pack(side=tk.RIGHT)
-
             rating_label = tk.Label(task_frame, text="How was the target?", font=("Helvetica", 12), bg="#f5f5f5")
             rating_label.pack(fill=tk.X)
             cur_datetime = datetime.datetime.now()
-            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
-                                         cur_datetime.minute)
+            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
             daily_tasks_progresses = DailyTasks().get_daily_tasks_progresses(self.__uname, cur_date)
             existing_feedback = daily_tasks_progresses["progresses"][task_name]["feedback"]
             rating_var = tk.StringVar(value="1")
             if existing_feedback is not None:
                 rating_var = tk.StringVar(value=existing_feedback)
-
-
-            rating_easy = tk.Radiobutton(task_frame, text="Easy", variable=rating_var, value="Easy",
-                                         font=("Helvetica", 12), bg="#f5f5f5")
+            rating_easy = tk.Radiobutton(task_frame, text="Easy", variable=rating_var, value="Easy", font=("Helvetica", 12), bg="#f5f5f5")
             rating_easy.pack(side=tk.LEFT, padx=10)
-            rating_normal = tk.Radiobutton(task_frame, text="Normal", variable=rating_var, value="Normal",
-                                           font=("Helvetica", 12), bg="#f5f5f5")
+            rating_normal = tk.Radiobutton(task_frame, text="Normal", variable=rating_var, value="Normal", font=("Helvetica", 12), bg="#f5f5f5")
             rating_normal.pack(side=tk.LEFT, padx=10)
-            rating_hard = tk.Radiobutton(task_frame, text="Hard", variable=rating_var, value="Hard",
-                                         font=("Helvetica", 12), bg="#f5f5f5")
+            rating_hard = tk.Radiobutton(task_frame, text="Hard", variable=rating_var, value="Hard", font=("Helvetica", 12), bg="#f5f5f5")
             rating_hard.pack(side=tk.LEFT, padx=10)
             cur_datetime = datetime.datetime.now()
-            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
-                                         cur_datetime.minute)
+            cur_date = datetime.datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
             save_button = tk.Button(task_frame, text="Save", command=lambda: self.save_rating(self.__uname, cur_date, task_name, rating_var.get()), bg="#007bff", fg="#ffffff",
                                     font=("Helvetica", 12))
             save_button.pack(pady=20)
         self.scrollable_frame.pack(fill=tk.X, expand=True)
         self.tasks_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw", width=self.WINDOW_WIDTH-60)
         self.tasks_canvas.configure(yscrollcommand=self.scrollbar.set)
-
         self.tasks_canvas.pack(side="left", fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side="right", fill=tk.Y)
 
