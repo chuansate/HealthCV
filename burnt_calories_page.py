@@ -107,17 +107,13 @@ class BurntCaloriesPage:
 
     def visualize_data(self):
         bc_table = BurnedCalories()
-        # Get selected date
         selected_date = self.calendar.selection_get()
         if selected_date is not None:
             year = selected_date.year
             month = selected_date.month
             days_in_month = (datetime.date(year, month + 1, 1) - datetime.date(year, month, 1)).days if month < 12 else 31
-            # daily_calories = [random.randint(200, 800) for _ in range(days_in_month)]
-
             daily_calories = [bc_table.get_burned_calories_by_date(self.uname, datetime.date(year, month, _ + 1)) for _ in range(days_in_month)]
             dates = [datetime.date(year, month, day + 1).day for day in range(days_in_month)]
-
             # getting previous month's data
             if month - 1 >= 1:
                 prev_month = month - 1
@@ -128,8 +124,6 @@ class BurntCaloriesPage:
             prev_days_in_month = (datetime.date(prev_year, prev_month + 1, 1) - datetime.date(prev_year, prev_month, 1)).days if prev_month < 12 else 31
             prev_month_daily_calories = [bc_table.get_burned_calories_by_date(self.uname, datetime.date(prev_year, prev_month, _ + 1)) for _
                               in range(prev_days_in_month)]
-
-
             # Create the plot
             fig, ax = plt.subplots()
             plt.ylim(0, 500)
@@ -138,16 +132,13 @@ class BurntCaloriesPage:
             ax.set_xlabel("Day of Date")
             ax.set_ylabel("Calories Burned")
             ax.grid(True)
-
             # Show the plot in a new window
             plot_window = tk.Toplevel(self.root)
             plot_window.title("Calories Burned Over Time")
             plot_window.geometry("800x600")
-
             canvas = FigureCanvasTkAgg(fig, master=plot_window)
             canvas.draw()
             canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
             window = tk.Tk()
             report_page = BurntCaloriesReportPage(window, 400, 150, prev_month_daily_calories, daily_calories)
             window.mainloop()

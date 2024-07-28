@@ -37,58 +37,7 @@ class KickAndCatchGame:
     pose = mp_pose.Pose(min_tracking_confidence=0.5, min_detection_confidence=0.5)
     punching_img = cv2.imread("icons/punching_smaller.png")
     kicking_img = cv2.imread("icons/kicking_smaller.png")
-    # exclude the facial landmarks detected by the mediapipe pose model
-    features = [
-        mp_pose.PoseLandmark.LEFT_SHOULDER,
-        mp_pose.PoseLandmark.RIGHT_SHOULDER,
-        mp_pose.PoseLandmark.LEFT_ELBOW,
-        mp_pose.PoseLandmark.RIGHT_ELBOW,
-        mp_pose.PoseLandmark.LEFT_WRIST,
-        mp_pose.PoseLandmark.RIGHT_WRIST,
-        mp_pose.PoseLandmark.LEFT_PINKY,
-        mp_pose.PoseLandmark.RIGHT_PINKY,
-        mp_pose.PoseLandmark.LEFT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_INDEX,
-        mp_pose.PoseLandmark.LEFT_THUMB,
-        mp_pose.PoseLandmark.RIGHT_THUMB,
-        mp_pose.PoseLandmark.LEFT_HIP,
-        mp_pose.PoseLandmark.RIGHT_HIP,
-        mp_pose.PoseLandmark.LEFT_KNEE,
-        mp_pose.PoseLandmark.RIGHT_KNEE,
-        mp_pose.PoseLandmark.LEFT_ANKLE,
-        mp_pose.PoseLandmark.RIGHT_ANKLE,
-        mp_pose.PoseLandmark.LEFT_HEEL,
-        mp_pose.PoseLandmark.RIGHT_HEEL,
-        mp_pose.PoseLandmark.LEFT_FOOT_INDEX,
-        mp_pose.PoseLandmark.RIGHT_FOOT_INDEX
-    ]
     path_to_audios = "./audio/"
-
-    feature_names = [
-        "LEFT_SHOULDER",
-        "RIGHT_SHOULDER",
-        "LEFT_ELBOW",
-        "RIGHT_ELBOW",
-        "LEFT_WRIST",
-        "RIGHT_WRIST",
-        "LEFT_PINKY",
-        "RIGHT_PINKY",
-        "LEFT_INDEX",
-        "RIGHT_INDEX",
-        "LEFT_THUMB",
-        "RIGHT_THUMB",
-        "LEFT_HIP",
-        "RIGHT_HIP",
-        "LEFT_KNEE",
-        "RIGHT_KNEE",
-        "LEFT_ANKLE",
-        "RIGHT_ANKLE",
-        "LEFT_HEEL",
-        "RIGHT_HEEL",
-        "LEFT_FOOT_INDEX",
-        "RIGHT_FOOT_INDEX"
-    ]
-
     def __init__(self, num_objects, stay_duration):
         self.__total_game_score = 0
         self.total_game_duration = 60  # the game lasts for this long, in seconds
@@ -111,7 +60,6 @@ class KickAndCatchGame:
         self.__game_duration_elapsed += (currentTime - previousTime)
         if self.__game_duration_elapsed > self.total_game_duration:
             self.__game_over = True
-
         else:
             cv2.putText(webcam_frame, "Time left: " + str(
                 int(round(self.total_game_duration - self.__game_duration_elapsed, 0))),
@@ -121,12 +69,7 @@ class KickAndCatchGame:
             pose_results = KickAndCatchGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
             webcam_frame.flags.writeable = True
             while len(self.__current_objects_on_frame) < self.__max_num_objects_on_frame:
-                # print("Printing current objects: ")
-                # for obj in self.__current_objects_on_frame:
-                #     print(obj)
-                # print()
                 self.generate_object(webcam_frame)
-
             self.render_objects_onto_screen(webcam_frame)
             obj_index = 0
             for obj in self.__current_objects_on_frame:
@@ -149,7 +92,6 @@ class KickAndCatchGame:
                     KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_INDEX].x * frame_width
                 right_index_finger_tip_y = pose_results.pose_landmarks.landmark[
                     KickAndCatchGame.mp_pose.PoseLandmark.RIGHT_INDEX].y * frame_height
-
                 left_foot_index_x = pose_results.pose_landmarks.landmark[
                     KickAndCatchGame.mp_pose.PoseLandmark.LEFT_FOOT_INDEX].x * frame_width
                 left_foot_index_y = pose_results.pose_landmarks.landmark[
@@ -179,7 +121,6 @@ class KickAndCatchGame:
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
-
                     if isinstance(obj, KickObject):
                         if obj.isKicked(left_foot_index_x, left_foot_index_y):
                             thread = threading.Thread(target=self.play_audio_for_breaking_rock)
@@ -195,7 +136,6 @@ class KickAndCatchGame:
                             self.__current_objects_on_frame.remove(obj)
                             self.increase_game_score()
                             break
-
             else:
                 cv2.putText(webcam_frame, "Failed to detect user!",
                             (frame_width // 2 - 206 // 2, 50),
@@ -205,7 +145,7 @@ class KickAndCatchGame:
         try:
             playsound.playsound(KickAndCatchGame.path_to_audios + "rock_breaking.mp3")
         except:
-            print("Probably the number of counter exceeds 20!")
+            print("Failed to play the audio!")
 
     def generate_object(self, frame):
         """
@@ -293,8 +233,6 @@ def render_kick_and_catch_game_UI(uname, window):
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    # x and y refers to coordinates of top left corner of the window
-    # x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
     diff_level = "NULL"
     mpHands = mp.solutions.hands
     hands = mpHands.Hands(False)  # modify `max_num_hands`
@@ -306,11 +244,9 @@ def render_kick_and_catch_game_UI(uname, window):
     easyButtonImg = cv2.imread("icons/easy.jpg")
     easyButtonImg_WIDTH = easyButtonImg.shape[1]
     easyButtonImg_HEIGHT = easyButtonImg.shape[0]
-
     normalButtonImg = cv2.imread("icons/normal.jpg")
     normalButtonImg_WIDTH = normalButtonImg.shape[1]
     normalButtonImg_HEIGHT = normalButtonImg.shape[0]
-
     hardButtonImg = cv2.imread("icons/hard.jpg")
     hardButtonImg_WIDTH = hardButtonImg.shape[1]
     hardButtonImg_HEIGHT = hardButtonImg.shape[0]
@@ -348,12 +284,9 @@ def render_kick_and_catch_game_UI(uname, window):
         if not game_started:
             rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgbFrame)
-            easyButton = ButtonImage(frame, easyButtonImg, (frame_width // 2 - easyButtonImg_WIDTH // 2, 100),
-                                      "easy_but")
-            normalButton = ButtonImage(frame, normalButtonImg, (frame_width // 2 - normalButtonImg_WIDTH // 2, 200),
-                                     "normal_but")
-            hardButton = ButtonImage(frame, hardButtonImg, (frame_width // 2 - hardButtonImg_WIDTH // 2, 300),
-                                     "hard_but")
+            easyButton = ButtonImage(frame, easyButtonImg, (frame_width // 2 - easyButtonImg_WIDTH // 2, 100), "easy_but")
+            normalButton = ButtonImage(frame, normalButtonImg, (frame_width // 2 - normalButtonImg_WIDTH // 2, 200), "normal_but")
+            hardButton = ButtonImage(frame, hardButtonImg, (frame_width // 2 - hardButtonImg_WIDTH // 2, 300), "hard_but")
             if results.multi_hand_landmarks:
                 for handLms in results.multi_hand_landmarks:
                     # don't pass HAND_CONNECTIONS if u just want the landmarks

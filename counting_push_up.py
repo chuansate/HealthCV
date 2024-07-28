@@ -80,7 +80,7 @@ class CountingPushUp:
         self.__grad_left_DOWN_threshold = 0.1
         self.__push_up_DOWN_angle_threshold = 110
         self.__left_elbow_angle = 0
-        self.__push_up_UP_angle_threshold = 150
+        self.__push_up_UP_angle_threshold = 140
         self.__workout_over = False
         self.workout_duration = 0  # time elapsed in seconds
         self.calories_burned_per_min = 7
@@ -221,21 +221,15 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
     curTime = 0
     FONT_SCALE = 1.2
     workout_over_time_elapsed = 0
-
     # Flags
     failed_to_turn_on_webcam = False
     saved_game_data = False
-
-    # Messages to display on screen
-    # `fs` means "font scale"
-    # `th` means "thickness"
     USER_NOT_EXIST = "Failed to detect user!"
     USER_NOT_EXIST_fs = 1
     USER_NOT_EXIST_th = 1
     WORKOUT_IS_OVER = "Workout is over, this window will close in 5 seconds!"
     WORKOUT_IS_OVER_fs = 1
     WORKOUT_IS_OVER_th = 1
-
     game_record = PushUpRecord()
     cpu_obj = CountingPushUp(set_count, rep_count)
     cur_datetime = datetime.now()
@@ -246,72 +240,44 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
         if not success:
             failed_to_turn_on_webcam = True
             break
-
         frame_height = frame.shape[0]
         frame_width = frame.shape[1]
         curTime = time.time()
         fps = 1 / (curTime - prevTime)
-
         pose_results = cpu_obj.detect_pose_landmarks(frame)
         # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 40), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
-
         if not cpu_obj.workout_is_over():
-            cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                        cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 0, 255), 1)
-            cv2.putText(frame, "Timer: " + str(int(cpu_obj.workout_duration)), (50, 100), cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 0, 255), 1)
-            cv2.putText(frame, "Set : " + str(cpu_obj.get_current_set_count()) + "/" + str(
-                cpu_obj.get_set_count()), (50, 50),
-                        cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 0, 255), 1)
-            cv2.putText(frame, "Count: " + str(cpu_obj.get_push_up_count()) + "/" + str(cpu_obj.get_rep_count()), (50, 75),
-                        cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 0, 255), 1)
+            cv2.putText(frame, "Press E to end", (frame_width - 150, 25), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            cv2.putText(frame, "Timer: " + str(int(cpu_obj.workout_duration)), (50, 100), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            cv2.putText(frame, "Set : " + str(cpu_obj.get_current_set_count()) + "/" + str(cpu_obj.get_set_count()), (50, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+            cv2.putText(frame, "Count: " + str(cpu_obj.get_push_up_count()) + "/" + str(cpu_obj.get_rep_count()), (50, 75), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
             if pose_results.pose_landmarks:
                 if cpu_obj.isReadyToPushUp(pose_results.pose_landmarks.landmark, prevTime, curTime):
                     cpu_obj.update_counter(pose_results.pose_landmarks.landmark)
-                    cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
+                    cv2.putText(frame, "L. elbow deg: " + str(cpu_obj.get_left_elbow_angle()), (frame_width - 150, 100), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                     if cpu_obj.get_user_status() == 0:
-                        cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
+                        cv2.putText(frame, "Push-up DOWN", (frame_width-150, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                     else:
-                        cv2.putText(frame, "Push-up UP", (frame_width - 150, 50),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
+                        cv2.putText(frame, "Push-up UP", (frame_width - 150, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                 else:
-                    center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE,
-                                                    CountingPushUp.GET_INTO_READY_POSE_fs,
-                                                    CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-                    center_opencv_text_horizontally(frame, 125, CountingPushUp.FACE_CAMERA,
-                                                    CountingPushUp.FACE_CAMERA_fs,
-                                                    CountingPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
-
+                    center_opencv_text_horizontally(frame, 100, CountingPushUp.GET_INTO_READY_POSE, CountingPushUp.GET_INTO_READY_POSE_fs, CountingPushUp.GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+                    center_opencv_text_horizontally(frame, 125, CountingPushUp.FACE_CAMERA, CountingPushUp.FACE_CAMERA_fs, CountingPushUp.FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
             else:
                 # Fails to detect the user
-                center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
-                                                USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
+                center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs, USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
         else:
             workout_over_time_elapsed += (curTime - prevTime)
             if workout_over_time_elapsed < 5:
-                center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
-                                                WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
+                center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs, WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                 cpu_obj.save_data(frame)
                 if not saved_game_data:
                     cpu_obj.workout_duration = int(cpu_obj.workout_duration)
-                    print("Time taken for Push-up in secs = ", cpu_obj.workout_duration)
                     game_record.create_new_workout_record(uname, cpu_obj.get_set_count(), cpu_obj.get_rep_count(), cpu_obj.workout_duration, cur_datetime)
-                    total_burned_calories = int(
-                        cpu_obj.calories_burned_per_min * cpu_obj.workout_duration / 60)
+                    total_burned_calories = int(cpu_obj.calories_burned_per_min * cpu_obj.workout_duration / 60)
                     cur_datetime = datetime.now()
-                    print("Burned calories = ", total_burned_calories)
-                    cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
-                                        cur_datetime.minute)
+                    cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
                     burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                     user.add_XP_to_user(uname, cpu_obj.XP)
                     user_goal = user.search_by_uname(uname)["fitness_goal"]
@@ -324,9 +290,7 @@ def render_counting_push_up_UI(uname, window, set_count, rep_count):
         if prevTime != 0:
             cpu_obj.workout_duration += (curTime - prevTime)
         prevTime = curTime
-
         cv2.imshow('Counting push-up', frame)
-
         if cv2.waitKey(1) & 0xFF == ord('e'):
             msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break

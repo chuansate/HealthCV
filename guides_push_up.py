@@ -39,7 +39,6 @@ class GuidesPushUp:
         mp_pose.PoseLandmark.LEFT_ANKLE,
         mp_pose.PoseLandmark.RIGHT_ANKLE
     ]
-
     features_names = [
         "LEFT_SHOULDER",
         "RIGHT_SHOULDER",
@@ -55,11 +54,6 @@ class GuidesPushUp:
         "RIGHT_ANKLE"
     ]
 
-    classes = {
-        "push_up_DOWN": 0,
-        "push_up_UP": 1
-    }
-
     GET_INTO_READY_POSE = "Please get into ready pose"
     GET_INTO_READY_POSE_fs = 1
     GET_INTO_READY_POSE_th = 1
@@ -68,12 +62,10 @@ class GuidesPushUp:
     def __init__(self):
         self.__current_step_index = 1
         self.__correlation_threshold = 0.95  # telling if the body is straightened
-        self.__user_status = 1  # 0 means the user is in push-up DOWN, while 1 means in push-up UP
         self.__user_in_ready_pose = False
         self.__grad_UP_threshold = 0.6  # For step 1 and step 3
         self.__arms_straightened_threshold = 0.05  # For step 1
         self.__grad_DOWN_threshold = 0.15  # For step 2
-        self.__grad_left_DOWN_threshold = 0.1
         self.__left_elbow_angle = 0
         self.__push_up_UP_angle_threshold = 145  # For step 3
         self.__workout_over = False
@@ -369,15 +361,6 @@ class GuidesPushUp:
                                                          landmark_drawing_spec=GuidesPushUp.mp_drawing_styles.get_default_pose_landmarks_style())
 
         return results
-
-    def reset_user_status(self):
-        self.__user_status = 1
-
-    def get_user_status(self):
-        return self.__user_status
-
-    def set_user_status(self, status):
-        self.__user_status = status
 
     def _get_angle_betw_two_vectors(self, vec1, vec2):
         angle_radian = math.acos((np.dot(vec1, vec2)) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))

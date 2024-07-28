@@ -237,9 +237,6 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
     saved_game_data = False
     counting_biceps_curl_object_created = False
     failed_to_turn_on_webcam = False
-    # Messages to display on screen
-    # `fs` means "font scale"
-    # `th` means "thickness"
     GET_INTO_READY_POSE = "Please get into ready pose"
     GET_INTO_READY_POSE_fs = 1
     GET_INTO_READY_POSE_th = 1
@@ -252,7 +249,6 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
     WORKOUT_IS_OVER = "Workout is over, this window will close in 5 seconds!"
     WORKOUT_IS_OVER_fs = 1
     WORKOUT_IS_OVER_th = 1
-
     game_record = BicepsCurlRecord()
     cur_datetime = datetime.now()
     user = User()
@@ -262,90 +258,56 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
         if not success:
             failed_to_turn_on_webcam = True
             break
-        # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
         frame_height = frame.shape[0]
         frame_width = frame.shape[1]
-
         curTime = time.time()
         fps = 1 / (curTime - prevTime)
-
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
         if not counting_biceps_curl_object_created:
             cbc_obj = CountingBicepsCurl(set_count, rep_count)
             counting_biceps_curl_object_created = True
         else:
             if not cbc_obj.workout_is_over():
-                cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-                cv2.putText(frame, "Timer: " + str(int(cbc_obj.workout_duration)), (50, 150), cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
+                cv2.putText(frame, "Press E to end", (frame_width - 150, 25), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                cv2.putText(frame, "Timer: " + str(int(cbc_obj.workout_duration)), (50, 150), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                 pose_results = cbc_obj.detect_pose_landmarks(frame)
                 if pose_results.pose_landmarks:
-                    cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 200),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
-                    cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 225),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 0, 255), 1)
+                    cv2.putText(frame, "L.Elbow angle: " + str(cbc_obj.get_left_elbow_angle()), (50, 200), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                    cv2.putText(frame, "R.Elbow angle: " + str(cbc_obj.get_right_elbow_angle()), (50, 225), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                     if cbc_obj.userInReadyPose(pose_results):
                         cbc_obj.update_counter()
-                        cv2.putText(frame, "Set : " + str(cbc_obj.get_current_set_count()) + "/" + str(cbc_obj.get_set_count()), (50, 75),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
-                        cv2.putText(frame, "Left Count: " + str(cbc_obj.get_left_biceps_curl_count()) + "/" + str(cbc_obj.get_rep_count()), (50, 100),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
-                        cv2.putText(frame, "Right Count: " + str(cbc_obj.get_right_biceps_curl_count()) + "/" + str(cbc_obj.get_rep_count()), (50, 125),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 0, 255), 1)
+                        cv2.putText(frame, "Set : " + str(cbc_obj.get_current_set_count()) + "/" + str(cbc_obj.get_set_count()), (50, 75), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                        cv2.putText(frame, "Left Count: " + str(cbc_obj.get_left_biceps_curl_count()) + "/" + str(cbc_obj.get_rep_count()), (50, 100), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                        cv2.putText(frame, "Right Count: " + str(cbc_obj.get_right_biceps_curl_count()) + "/" + str(cbc_obj.get_rep_count()), (50, 125), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                         if cbc_obj.get_left_arm_status() == 0:
-                            cv2.putText(frame, "L. Arm: DOWN", (frame_width-150, 50),
-                                        cv2.FONT_HERSHEY_PLAIN, 1,
-                                        (255, 0, 255), 1)
+                            cv2.putText(frame, "L. Arm: DOWN", (frame_width-150, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                         else:
-                            cv2.putText(frame, "L. Arm: UP", (frame_width - 150, 50),
-                                        cv2.FONT_HERSHEY_PLAIN, 1,
-                                        (255, 0, 255), 1)
+                            cv2.putText(frame, "L. Arm: UP", (frame_width - 150, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                         if cbc_obj.get_right_arm_status() == 0:
-                            cv2.putText(frame, "R. Arm: DOWN", (frame_width-150, 75),
-                                        cv2.FONT_HERSHEY_PLAIN, 1,
-                                        (255, 0, 255), 1)
+                            cv2.putText(frame, "R. Arm: DOWN", (frame_width-150, 75), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                         else:
-                            cv2.putText(frame, "R. Arm: UP", (frame_width - 150, 75),
-                                        cv2.FONT_HERSHEY_PLAIN, 1,
-                                        (255, 0, 255), 1)
-
+                            cv2.putText(frame, "R. Arm: UP", (frame_width - 150, 75), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                     else:
                         # Ask the user to get into the ready pose of biceps curl
                         cbc_obj.reset_arms_status()
-                        center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs,
-                                                        GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
-                        center_opencv_text_horizontally(frame, 125, FACE_CAMERA, FACE_CAMERA_fs,
-                                                        FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
+                        center_opencv_text_horizontally(frame, 100, GET_INTO_READY_POSE, GET_INTO_READY_POSE_fs, GET_INTO_READY_POSE_th, cv2.FONT_HERSHEY_PLAIN)
+                        center_opencv_text_horizontally(frame, 125, FACE_CAMERA, FACE_CAMERA_fs, FACE_CAMERA_th, cv2.FONT_HERSHEY_PLAIN)
                 else:
                     # Fails to detect the user
-                    center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs,
-                                                    USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
+                    center_opencv_text_horizontally(frame, 50, USER_NOT_EXIST, USER_NOT_EXIST_fs, USER_NOT_EXIST_th, cv2.FONT_HERSHEY_PLAIN)
                     cbc_obj.reset_arms_status()
             else:
                 workout_over_time_elapsed += (curTime - prevTime)
                 if workout_over_time_elapsed < 5:
-                    center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs,
-                                                    WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
+                    center_opencv_text_horizontally(frame, 50, WORKOUT_IS_OVER, WORKOUT_IS_OVER_fs, WORKOUT_IS_OVER_th, cv2.FONT_HERSHEY_PLAIN)
                     cbc_obj.save_data(frame)
                     if not saved_game_data:
                         cbc_obj.workout_duration = int(cbc_obj.workout_duration)
-                        print("Time taken for biceps curl in secs = ", cbc_obj.workout_duration)
-                        game_record.create_new_workout_record(uname, cbc_obj.get_set_count(), cbc_obj.get_rep_count(),
-                                                              cbc_obj.workout_duration, cur_datetime)
-                        total_burned_calories = int(
-                            cbc_obj.calories_burned_per_min * cbc_obj.workout_duration / 60)
+                        game_record.create_new_workout_record(uname, cbc_obj.get_set_count(), cbc_obj.get_rep_count(), cbc_obj.workout_duration, cur_datetime)
+                        total_burned_calories = int(cbc_obj.calories_burned_per_min * cbc_obj.workout_duration / 60)
                         cur_datetime = datetime.now()
-                        print("Burned calories = ", total_burned_calories)
-                        cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
-                                            cur_datetime.minute)
+                        cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour, cur_datetime.minute)
                         burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
                         user.add_XP_to_user(uname, cbc_obj.XP)
                         user_goal = user.search_by_uname(uname)["fitness_goal"]
@@ -358,15 +320,12 @@ def render_counting_biceps_curl_UI(uname, window, set_count, rep_count):
         if prevTime != 0:
             cbc_obj.workout_duration += (curTime - prevTime)
         prevTime = curTime
-
         cv2.imshow('Frame', frame)
-
         if cv2.waitKey(1) & 0xFF == ord('e'):
             msg = messagebox.showinfo("Warning", "The progress in this session has been lost.")
             break
     if failed_to_turn_on_webcam:
         msg = messagebox.showinfo("Warning", "Failed to turn on the webcam.")
-
     cap.release()
     cv2.destroyAllWindows()
     workout_plan_page(uname, None)

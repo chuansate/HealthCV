@@ -160,14 +160,7 @@ class YogaPoseImitationGame:
 
 
     def evaluate_user_pose(self, webcam_frame):
-        """
-            Compare the user's body landmarks with the sample's
-        :param webcam_frame: a numpy array, webcam frame
-        :return:
-        """
         frame_width = webcam_frame.shape[1]
-        # To improve performance, optionally mark the image as not writeable to
-        # pass by reference.
         webcam_frame.flags.writeable = False
         pose_results = YogaPoseImitationGame.pose.process(cv2.cvtColor(webcam_frame, cv2.COLOR_BGR2RGB))
         similarity_score = 0
@@ -198,13 +191,11 @@ class YogaPoseImitationGame:
                 cv2.putText(webcam_frame, "Similarity: " + str(round(similarity_score * 100, 1)) + "%",
                             (frame_width - 200, 75),
                             cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
-
         else:
             webcam_frame.flags.writeable = True
             cv2.putText(webcam_frame, "Failed to detect user!",
                         (frame_width // 2 - 206 // 2, 50),
                         cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
-
         return similarity_score
 
     def count_down(self, webcam_frame, currentTime, previousTime):
@@ -314,34 +305,25 @@ YOGA_POSES_NAMES_DIFFICULTIES = [
     ("Intense Side Stretch", 1),
     ("Side plank", 2)
 ]
-
 # Loading icons
 startButtonImg = cv2.imread("icons/start_button2.png")
 startButtonImg_WIDTH = startButtonImg.shape[1]
 startButtonImg_HEIGHT = startButtonImg.shape[0]
-
-
 def render_yoga_poses_imitation_game_UI(uname, window):
     window.destroy()
     cap = cv2.VideoCapture(0)
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-    # x and y refers to coordinates of top left corner of the window
-    # x, y, WINDOW_WIDTH, WINDOW_HEIGHT = cv2.getWindowImageRect("Frame")
-
     mpHands = mp.solutions.hands
     hands = mpHands.Hands(False)  # modify `max_num_hands`
     mpDraw = mp.solutions.drawing_utils
     prevTime = 0
     curTime = 0
     workout_over_time_elapsed = 0
-
     # Flag
     game_started = False
     failed_to_turn_on_webcam = False
     saved_game_data = False
-
     user = User()
     best_record = user.get_best_record(uname, "Yoga Imitation")
     game_record = YogaImitationMatchRecord()
@@ -351,52 +333,36 @@ def render_yoga_poses_imitation_game_UI(uname, window):
     if best_record is None:
         print("Either username doesnt exist or the game doesnt exist!")
         best_record = -1
-
     while True:
         success, frame = cap.read()
         if not success:
             failed_to_turn_on_webcam = True
             break
-        # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
         frame_height = frame.shape[0]
         frame_width = frame.shape[1]
-
         curTime = time.time()
         fps = 1 / (curTime - prevTime)
-
         cv2.putText(frame, str(int(fps)) + " FPS", (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
         if not game_started:
             rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgbFrame)
-            startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200),
-                                      "start_but")
+            startButton = ButtonImage(frame, startButtonImg, (frame_width // 2 - startButtonImg_WIDTH // 2, 200), "start_but")
             if results.multi_hand_landmarks:
                 for handLms in results.multi_hand_landmarks:
-                    # don't pass HAND_CONNECTIONS if u just want the landmarks
                     mpDraw.draw_landmarks(frame, handLms)
                     index_finger_tip_x = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].x * frame_width
                     index_finger_tip_y = handLms.landmark[mpHands.HandLandmark.INDEX_FINGER_TIP].y * frame_height
-
                     if startButton.isTapped(index_finger_tip_x, index_finger_tip_y):
                         game_started = True
         else:
             if not game_object.is_game_over():
                 if prevTime != 0:
                     game_object.workout_duration += (curTime - prevTime)
-                cv2.putText(frame, "Press E to end", (frame_width - 150, 25),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-                cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50),
-                            cv2.FONT_HERSHEY_PLAIN, 1.2,
-                            (255, 0, 255), 1)
-                cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 100),
-                            cv2.FONT_HERSHEY_PLAIN, 1.2,
-                            (255, 0, 255), 1)
-                cv2.putText(frame, "Timer: " + str(int(game_object.workout_duration)), (frame_width - 150, 125),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 0, 255), 1)
-
+                cv2.putText(frame, "Press E to end", (frame_width - 150, 25), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
+                cv2.putText(frame, "Score: " + str(game_object.get_total_game_score()), (frame_width - 150, 50), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
+                cv2.putText(frame, "Best: " + str(best_record), (frame_width - 150, 100), cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 0, 255), 1)
+                cv2.putText(frame, "Timer: " + str(int(game_object.workout_duration)), (frame_width - 150, 125), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 255), 1)
                 cur_similarity_score = game_object.evaluate_user_pose(frame)
                 game_object.display_sample_yoga_pose(frame)
                 if cur_similarity_score > game_object.get_similarity_threshold():
@@ -410,12 +376,9 @@ def render_yoga_poses_imitation_game_UI(uname, window):
                     game_object.render_saving_data(frame)
                     if not saved_game_data:
                         game_object.workout_duration = int(game_object.workout_duration)
-                        print("Time taken for Yoga Imitation in secs = ", game_object.workout_duration)
                         game_record.create_new_match_record(uname, game_object.get_total_game_score(), cur_datetime, game_object.workout_duration)
-                        total_burned_calories = int(
-                            game_object.calories_burned_per_min * game_object.workout_duration / 60)
+                        total_burned_calories = int(game_object.calories_burned_per_min * game_object.workout_duration / 60)
                         cur_datetime = datetime.now()
-                        print("Burned calories = ", total_burned_calories)
                         cur_date = datetime(cur_datetime.year, cur_datetime.month, cur_datetime.day, cur_datetime.hour,
                                             cur_datetime.minute)
                         burned_calories_table.update_burned_calories_by_date(uname, total_burned_calories, cur_date)
