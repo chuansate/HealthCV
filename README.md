@@ -1,1 +1,1 @@
-Please go to the branch `personalized_plan`, that is the final version of **HealthCV**.
+Please go to the branch `personalized_plan` for demo video of my FYP, that is the final version of **HealthCV**.
